@@ -216,8 +216,28 @@ const DeliveryAgentApp = () => {
   const [ws, setWs] = useState(null);
   const [agentId] = useState('delivery_agent_1'); // In real app, this would be dynamic
 
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get(`${API}/orders`);
+      // Filter orders that are relevant for delivery (pending or out_for_delivery)
+      const deliveryOrders = response.data.filter(order => 
+        order.status === 'pending' || order.status === 'out_for_delivery'
+      );
+      setOrders(deliveryOrders);
+      console.log('Fetched orders for delivery agent:', deliveryOrders.length);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
+
   useEffect(() => {
-    // Setup WebSocket connection
+    // Fetch existing orders on component mount
+    fetchOrders();
+    
+    // Set up polling as fallback to WebSocket (since WebSocket has connection issues)
+    const pollInterval = setInterval(fetchOrders, 5000); // Poll every 5 seconds
+    
+    // Try WebSocket connection (but have polling as backup)
     const websocket = new WebSocket(`${WS_URL}/ws/delivery/${agentId}`);
     
     websocket.onopen = () => {
@@ -245,6 +265,10 @@ const DeliveryAgentApp = () => {
       console.log('Delivery Agent WebSocket disconnected');
     };
     
+    websocket.onerror = (error) => {
+      console.log('WebSocket error, relying on polling:', error);
+    };
+    
     // Request notification permission
     if (Notification.permission !== 'granted') {
       Notification.requestPermission();
@@ -254,6 +278,7 @@ const DeliveryAgentApp = () => {
       if (websocket) {
         websocket.close();
       }
+      clearInterval(pollInterval);
     };
   }, [agentId]);
 
