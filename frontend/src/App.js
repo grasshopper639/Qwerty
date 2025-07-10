@@ -81,12 +81,18 @@ const RestaurantDashboard = () => {
     try {
       await axios.post(`${API}/orders/${orderId}/send-for-delivery`);
       
-      // Send WebSocket message to delivery agents
-      if (ws) {
+      // Also manually update the order status to ensure immediate UI feedback
+      await axios.put(`${API}/orders/${orderId}`, {
+        status: 'out_for_delivery',
+        assigned_to: 'delivery_agent_1'
+      });
+      
+      // Send WebSocket message to delivery agents (if connected)
+      if (ws && ws.readyState === WebSocket.OPEN) {
         const order = orders.find(o => o.id === orderId);
         ws.send(JSON.stringify({
           type: 'send_for_delivery',
-          order: order
+          order: { ...order, status: 'out_for_delivery' }
         }));
       }
       
@@ -96,8 +102,12 @@ const RestaurantDashboard = () => {
           ? { ...order, status: 'out_for_delivery' }
           : order
       ));
+      
+      // Show success feedback
+      alert('Order sent for delivery successfully!');
     } catch (error) {
       console.error('Error sending order for delivery:', error);
+      alert('Error sending order for delivery. Please try again.');
     }
   };
 
