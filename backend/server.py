@@ -219,9 +219,17 @@ async def send_order_for_delivery(order_id: str):
     )
     
     # Broadcast to delivery agents
+    order_obj = Order(**order)
+    order_dict = order_obj.dict()
+    # Convert datetime objects to ISO format strings for JSON serialization
+    if 'created_at' in order_dict and order_dict['created_at']:
+        order_dict['created_at'] = order_dict['created_at'].isoformat()
+    if 'delivered_at' in order_dict and order_dict['delivered_at']:
+        order_dict['delivered_at'] = order_dict['delivered_at'].isoformat()
+    
     await manager.broadcast_to_delivery_agents(json.dumps({
         "type": "new_order",
-        "order": Order(**order).dict()
+        "order": order_dict
     }))
     
     return {"message": "Order sent for delivery", "order_id": order_id}
