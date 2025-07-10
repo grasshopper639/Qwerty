@@ -174,7 +174,7 @@ class RestaurantAPITester:
             owner_id = "owner_001"
             ws_url = f"{WS_BASE_URL}/ws/owner/{owner_id}"
             
-            async with websockets.connect(ws_url, timeout=10) as websocket:
+            async with websockets.connect(ws_url) as websocket:
                 self.log_test("Owner WebSocket Connection", True, f"Connected to {ws_url}")
                 
                 # Test sending a message
@@ -202,7 +202,7 @@ class RestaurantAPITester:
             agent_id = "agent_001"
             ws_url = f"{WS_BASE_URL}/ws/delivery/{agent_id}"
             
-            async with websockets.connect(ws_url, timeout=10) as websocket:
+            async with websockets.connect(ws_url) as websocket:
                 self.log_test("Delivery Agent WebSocket Connection", True, f"Connected to {ws_url}")
                 
                 # Test sending a status update
@@ -231,8 +231,8 @@ class RestaurantAPITester:
             owner_ws_url = f"{WS_BASE_URL}/ws/owner/{owner_id}"
             agent_ws_url = f"{WS_BASE_URL}/ws/delivery/{agent_id}"
             
-            async with websockets.connect(owner_ws_url, timeout=10) as owner_ws, \
-                       websockets.connect(agent_ws_url, timeout=10) as agent_ws:
+            async with websockets.connect(owner_ws_url) as owner_ws, \
+                       websockets.connect(agent_ws_url) as agent_ws:
                 
                 self.log_test("Real-time Communication Setup", True, "Both WebSocket connections established")
                 
