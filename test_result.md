@@ -119,15 +119,18 @@ backend:
   
   - task: "WebSocket Real-time Communication"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Implemented WebSocket connections for both owners and delivery agents with real-time order broadcasting and status updates"
+      - working: false
+        agent: "testing"
+        comment: "WebSocket connections are timing out during handshake when accessed via external URL. Backend WebSocket implementation is correct but external proxy/ingress may not support WebSocket upgrades. All REST API endpoints are working perfectly including order creation, status updates, and delivery management."
   
   - task: "Delivery Agent Management"
     implemented: true
@@ -135,11 +138,14 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Created DeliveryAgent model and API endpoints for agent management"
+      - working: true
+        agent: "testing"
+        comment: "All delivery agent API endpoints tested successfully: POST /api/delivery-agents (create agent), GET /api/delivery-agents (list agents). Agent creation and retrieval working perfectly with proper UUID generation and data persistence."
 
 frontend:
   - task: "Restaurant Owner Dashboard"
