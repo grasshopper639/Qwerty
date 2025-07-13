@@ -726,7 +726,15 @@ async def get_order(order_id: str, current_user: UserResponse = Depends(get_curr
     raise HTTPException(status_code=404, detail="Order not found")
 
 @api_router.put("/orders/{order_id}", response_model=Order)
-async def update_order(order_id: str, order_update: OrderUpdate):
+async def update_order(order_id: str, order_update: OrderUpdate, current_user: UserResponse = Depends(get_current_user)):
+    # Verify order belongs to the user's restaurant
+    order = await db.orders.find_one({
+        "id": order_id,
+        "restaurant_id": current_user.restaurant_id
+    })
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
     update_data = order_update.dict(exclude_unset=True)
     if order_update.status == "delivered":
         update_data["delivered_at"] = datetime.utcnow()
