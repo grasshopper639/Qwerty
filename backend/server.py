@@ -94,7 +94,114 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Enhanced Models
+# Enhanced Models with Authentication
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    username: str
+    email: str
+    password_hash: str
+    role: str  # "restaurant_owner" or "delivery_agent"
+    name: str
+    phone: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_login: Optional[datetime] = None
+
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str
+    name: str
+    phone: Optional[str] = None
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    role: str
+    name: str
+    phone: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    last_login: Optional[datetime] = None
+
+class LoginResponse(BaseModel):
+    user: UserResponse
+    token: str
+    message: str
+
+# Password hashing utilities
+import hashlib
+import secrets
+
+def hash_password(password: str) -> str:
+    """Hash a password with salt"""
+    salt = secrets.token_hex(16)
+    password_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
+    return f"{salt}:{password_hash.hex()}"
+
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify a password against its hash"""
+    try:
+        salt, hash_hex = password_hash.split(':')
+        password_check = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
+        return password_check.hex() == hash_hex
+    except:
+        return False
+
+def generate_token() -> str:
+    """Generate a simple session token"""
+    return secrets.token_urlsafe(32)
+
+# In-memory session storage (in production, use Redis or database)
+active_sessions = {}
+
+def create_session(user_id: str) -> str:
+    """Create a new session"""
+    token = generate_token()
+    active_sessions[token] = {
+        "user_id": user_id,
+        "created_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(hours=24)
+    }
+    return token
+
+def get_session(token: str) -> Optional[str]:
+    """Get user_id from session token"""
+    session = active_sessions.get(token)
+    if session and session["expires_at"] > datetime.utcnow():
+        return session["user_id"]
+    elif session:
+        # Remove expired session
+        del active_sessions[token]
+    return None
+
+def delete_session(token: str):
+    """Delete a session"""
+    if token in active_sessions:
+        del active_sessions[token]
+
+# Authentication dependency
+async def get_current_user(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    
+    token = authorization.split(" ")[1]
+    user_id = get_session(token)
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return UserResponse(**user)
 class Location(BaseModel):
     latitude: float
     longitude: float
