@@ -894,9 +894,17 @@ const RestaurantDashboard = () => {
 // Enhanced Delivery Agent Interface
 const DeliveryAgentApp = () => {
   const [orders, setOrders] = useState([]);
+  const [orderHistory, setOrderHistory] = useState([]);
   const [ws, setWs] = useState(null);
   const [agentId] = useState('delivery_agent_1');
   const [location, setLocation] = useState(null);
+  const [currentTab, setCurrentTab] = useState('active'); // 'active' or 'history'
+  const [agentStats, setAgentStats] = useState({
+    totalDeliveries: 0,
+    avgDeliveryTime: 0,
+    successRate: 0,
+    totalEarnings: 0
+  });
 
   const fetchOrders = async () => {
     try {
@@ -905,9 +913,56 @@ const DeliveryAgentApp = () => {
         order.status === 'pending' || order.status === 'out_for_delivery'
       );
       setOrders(deliveryOrders);
-      console.log('Fetched orders for delivery agent:', deliveryOrders.length);
+      console.log('Fetched active orders for delivery agent:', deliveryOrders.length);
     } catch (error) {
       console.error('Error fetching orders:', error);
+    }
+  };
+
+  const fetchOrderHistory = async () => {
+    try {
+      // Fetch all orders assigned to this agent
+      const response = await axios.get(`${API}/delivery-agents/${agentId}/orders`);
+      const allAgentOrders = response.data;
+      
+      // Separate delivered orders for history
+      const deliveredOrders = allAgentOrders.filter(order => 
+        order.status === 'delivered' || order.status === 'cancelled'
+      );
+      setOrderHistory(deliveredOrders);
+      
+      // Calculate agent stats
+      const delivered = allAgentOrders.filter(order => order.status === 'delivered');
+      const totalDeliveries = delivered.length;
+      const avgTime = delivered.length > 0 
+        ? delivered.reduce((sum, order) => sum + (order.actual_delivery_time || 0), 0) / delivered.length
+        : 0;
+      const successRate = allAgentOrders.length > 0 
+        ? (delivered.length / allAgentOrders.length) * 100 
+        : 0;
+      const totalEarnings = delivered.reduce((sum, order) => sum + (order.order_value || 0), 0);
+      
+      setAgentStats({
+        totalDeliveries,
+        avgDeliveryTime: Math.round(avgTime),
+        successRate: Math.round(successRate),
+        totalEarnings: totalEarnings.toFixed(2)
+      });
+      
+      console.log('Fetched order history:', deliveredOrders.length);
+    } catch (error) {
+      console.error('Error fetching order history:', error);
+      // Fallback: fetch from general orders endpoint with filtering
+      try {
+        const response = await axios.get(`${API}/orders?assigned_to=${agentId}`);
+        const agentOrders = response.data;
+        const deliveredOrders = agentOrders.filter(order => 
+          order.status === 'delivered' || order.status === 'cancelled'
+        );
+        setOrderHistory(deliveredOrders);
+      } catch (fallbackError) {
+        console.error('Fallback fetch also failed:', fallbackError);
+      }
     }
   };
 
@@ -939,6 +994,7 @@ const DeliveryAgentApp = () => {
 
   useEffect(() => {
     fetchOrders();
+    fetchOrderHistory();
     
     // Get initial location
     updateLocation();
@@ -947,7 +1003,12 @@ const DeliveryAgentApp = () => {
     const locationInterval = setInterval(updateLocation, 30000);
     
     // Set up polling as fallback to WebSocket
-    const pollInterval = setInterval(fetchOrders, 5000);
+    const pollInterval = setInterval(() => {
+      fetchOrders();
+      if (currentTab === 'history') {
+        fetchOrderHistory();
+      }
+    }, 10000);
     
     // Try WebSocket connection
     const websocket = new WebSocket(`${WS_URL}/ws/delivery/${agentId}`);
@@ -1002,7 +1063,7 @@ const DeliveryAgentApp = () => {
       clearInterval(pollInterval);
       clearInterval(locationInterval);
     };
-  }, [agentId]);
+  }, [agentId, currentTab]);
 
   const updateOrderStatus = async (orderId, status) => {
     try {
@@ -1019,11 +1080,20 @@ const DeliveryAgentApp = () => {
         }));
       }
       
+      // Update local state
       setOrders(prev => prev.map(order => 
         order.id === orderId 
           ? { ...order, status: status, assigned_to: agentId }
           : order
       ));
+      
+      // If marked as delivered, refresh history
+      if (status === 'delivered') {
+        setTimeout(() => {
+          fetchOrderHistory();
+          fetchOrders(); // Remove from active orders
+        }, 1000);
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
     }
@@ -1040,98 +1110,288 @@ const DeliveryAgentApp = () => {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'out_for_delivery': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatDeliveryTime = (minutes) => {
+    if (!minutes) return 'N/A';
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Delivery Agent</h1>
-          <div className="text-right">
-            {location && (
-              <p className="text-xs text-green-600">📍 GPS Active</p>
-            )}
-            <p className="text-xs text-gray-500">{orders.length} orders</p>
+        {/* Header with Stats */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <h1 className="text-xl font-bold text-gray-900">Delivery Agent</h1>
+            <div className="text-right">
+              {location && (
+                <p className="text-xs text-green-600">📍 GPS Active</p>
+              )}
+              <p className="text-xs text-gray-500">Agent ID: {agentId}</p>
+            </div>
+          </div>
+          
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="bg-blue-50 rounded-lg p-2">
+              <p className="text-lg font-bold text-blue-600">{agentStats.totalDeliveries}</p>
+              <p className="text-xs text-blue-600">Total Deliveries</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-2">
+              <p className="text-lg font-bold text-green-600">${agentStats.totalEarnings}</p>
+              <p className="text-xs text-green-600">Total Earnings</p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-2">
+              <p className="text-lg font-bold text-purple-600">{agentStats.avgDeliveryTime}m</p>
+              <p className="text-xs text-purple-600">Avg Time</p>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-2">
+              <p className="text-lg font-bold text-yellow-600">{agentStats.successRate}%</p>
+              <p className="text-xs text-yellow-600">Success Rate</p>
+            </div>
           </div>
         </div>
+
+        {/* Tab Navigation */}
+        <div className="flex bg-gray-200 rounded-lg p-1 mb-4">
+          <button
+            onClick={() => setCurrentTab('active')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              currentTab === 'active' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            🚚 Active Orders ({orders.length})
+          </button>
+          <button
+            onClick={() => setCurrentTab('history')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              currentTab === 'history' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            📋 History ({orderHistory.length})
+          </button>
+        </div>
         
-        <div className="space-y-4">
-          {orders.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No orders yet. Waiting for new deliveries...</p>
-            </div>
-          ) : (
-            orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-lg">{order.customer_name}</h3>
-                    <p className="text-gray-600 text-sm">Order: {order.order_id}</p>
-                    {order.order_value > 0 && (
-                      <p className="text-green-600 text-sm font-medium">💰 ${order.order_value}</p>
-                    )}
+        {/* Active Orders Tab */}
+        {currentTab === 'active' && (
+          <div className="space-y-4">
+            {orders.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-2">🎯</div>
+                <p className="text-gray-500">No active orders</p>
+                <p className="text-sm text-gray-400">Waiting for new deliveries...</p>
+              </div>
+            ) : (
+              orders.map((order) => (
+                <div key={order.id} className="bg-white rounded-lg shadow-md p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg">{order.customer_name}</h3>
+                      <p className="text-gray-600 text-sm">Order: {order.order_id}</p>
+                      {order.order_value > 0 && (
+                        <p className="text-green-600 text-sm font-medium">💰 ${order.order_value}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {order.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                      {order.priority !== 'normal' && (
+                        <p className="text-xs text-red-600 mt-1">🚨 {order.priority.toUpperCase()}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                      {order.status.replace('_', ' ').toUpperCase()}
-                    </span>
-                    {order.priority !== 'normal' && (
-                      <p className="text-xs text-red-600 mt-1">🚨 {order.priority.toUpperCase()}</p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center">
+                      <span className="text-blue-600 mr-2">📞</span>
+                      <a href={`tel:${order.customer_phone}`} className="text-blue-600 hover:underline">
+                        {order.customer_phone}
+                      </a>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="text-green-600 mr-2 mt-1">📍</span>
+                      <p className="text-gray-700 text-sm leading-relaxed">{order.customer_address}</p>
+                    </div>
+                    {order.estimated_delivery_time && (
+                      <div className="flex items-center">
+                        <span className="text-purple-600 mr-2">⏱️</span>
+                        <p className="text-purple-600 text-sm">ETA: {order.estimated_delivery_time} min</p>
+                      </div>
+                    )}
+                    <div className="flex items-center">
+                      <span className="text-gray-600 mr-2">🕐</span>
+                      <p className="text-gray-600 text-sm">Created: {formatDate(order.created_at)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => openNavigation(order.customer_address)}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center"
+                    >
+                      🗺️ Open Navigation
+                    </button>
+                    
+                    {order.status === 'pending' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
+                        className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 transition-colors"
+                      >
+                        Start Delivery
+                      </button>
+                    )}
+                    
+                    {order.status === 'out_for_delivery' && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'delivered')}
+                        className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+                      >
+                        Mark as Delivered
+                      </button>
                     )}
                   </div>
                 </div>
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center">
-                    <span className="text-blue-600 mr-2">📞</span>
-                    <a href={`tel:${order.customer_phone}`} className="text-blue-600 hover:underline">
-                      {order.customer_phone}
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Order History Tab */}
+        {currentTab === 'history' && (
+          <div className="space-y-4">
+            {orderHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-2">📋</div>
+                <p className="text-gray-500">No delivery history yet</p>
+                <p className="text-sm text-gray-400">Complete your first delivery to see history</p>
+              </div>
+            ) : (
+              orderHistory.map((order) => (
+                <div key={order.id} className="bg-white rounded-lg shadow-md p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg">{order.customer_name}</h3>
+                      <p className="text-gray-600 text-sm">Order: {order.order_id}</p>
+                      {order.order_value > 0 && (
+                        <p className="text-green-600 text-sm font-medium">💰 ${order.order_value}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {order.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                      {order.customer_rating && (
+                        <p className="text-xs text-yellow-600 mt-1">⭐ {order.customer_rating}/5</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-center">
+                      <span className="text-gray-600 mr-2">📍</span>
+                      <p className="text-gray-700 text-sm leading-relaxed">{order.customer_address}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-500">Created:</p>
+                        <p className="text-gray-700">{formatDate(order.created_at)}</p>
+                      </div>
+                      {order.delivered_at && (
+                        <div>
+                          <p className="text-gray-500">Delivered:</p>
+                          <p className="text-gray-700">{formatDate(order.delivered_at)}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {order.estimated_delivery_time && (
+                        <div>
+                          <p className="text-gray-500">Estimated:</p>
+                          <p className="text-purple-600">{order.estimated_delivery_time} min</p>
+                        </div>
+                      )}
+                      {order.actual_delivery_time && (
+                        <div>
+                          <p className="text-gray-500">Actual Time:</p>
+                          <p className={`${
+                            order.actual_delivery_time <= (order.estimated_delivery_time || 60) 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
+                            {formatDeliveryTime(order.actual_delivery_time)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {order.delivery_notes && (
+                      <div>
+                        <p className="text-gray-500 text-sm">Notes:</p>
+                        <p className="text-gray-700 text-sm bg-gray-50 p-2 rounded">
+                          {order.delivery_notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Quick Action Buttons for History Items */}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => openNavigation(order.customer_address)}
+                      className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-200 transition-colors text-sm"
+                    >
+                      🗺️ View Location
+                    </button>
+                    <a
+                      href={`tel:${order.customer_phone}`}
+                      className="flex-1 bg-blue-100 text-blue-700 py-2 px-3 rounded-md hover:bg-blue-200 transition-colors text-sm text-center"
+                    >
+                      📞 Call Customer
                     </a>
                   </div>
-                  <div className="flex items-start">
-                    <span className="text-green-600 mr-2 mt-1">📍</span>
-                    <p className="text-gray-700 text-sm leading-relaxed">{order.customer_address}</p>
-                  </div>
-                  {order.estimated_delivery_time && (
-                    <div className="flex items-center">
-                      <span className="text-purple-600 mr-2">⏱️</span>
-                      <p className="text-purple-600 text-sm">ETA: {order.estimated_delivery_time} min</p>
+                  
+                  {/* Performance Indicator */}
+                  {order.status === 'delivered' && order.estimated_delivery_time && order.actual_delivery_time && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Performance:</span>
+                        <span className={`font-medium ${
+                          order.actual_delivery_time <= order.estimated_delivery_time 
+                            ? 'text-green-600' 
+                            : 'text-yellow-600'
+                        }`}>
+                          {order.actual_delivery_time <= order.estimated_delivery_time 
+                            ? '🎯 On Time' 
+                            : '⏱️ Delayed'
+                          }
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
-                
-                <div className="space-y-2">
-                  <button
-                    onClick={() => openNavigation(order.customer_address)}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    🗺️ Open Navigation
-                  </button>
-                  
-                  {order.status === 'pending' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
-                      className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 transition-colors"
-                    >
-                      Start Delivery
-                    </button>
-                  )}
-                  
-                  {order.status === 'out_for_delivery' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'delivered')}
-                      className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
-                    >
-                      Mark as Delivered
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
