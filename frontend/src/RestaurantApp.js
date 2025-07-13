@@ -446,7 +446,7 @@ const RestaurantDashboard = () => {
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [selectedAgentId, setSelectedAgentId] = useState('');
-  const { user, token } = useAuth();
+  const { user, restaurant, token } = useAuth();
 
   useEffect(() => {
     fetchOrders();
