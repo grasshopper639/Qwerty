@@ -112,6 +112,7 @@ const AnalyticsDashboard = ({ onBack }) => {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-600">Total Orders</p>
                     <p className="text-2xl font-bold text-gray-900">{analytics.total_orders}</p>
+                    <p className="text-sm text-green-600">+{analytics.weekly_growth}% this week</p>
                   </div>
                   <div className="p-3 bg-blue-100 rounded-full">
                     <span className="text-2xl">📋</span>
@@ -122,10 +123,24 @@ const AnalyticsDashboard = ({ onBack }) => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex items-center">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Completed</p>
-                    <p className="text-2xl font-bold text-green-600">{analytics.completed_orders}</p>
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">₹{analytics.total_revenue.toLocaleString()}</p>
+                    <p className="text-sm text-gray-600">Avg: ₹{analytics.avg_order_value}</p>
                   </div>
                   <div className="p-3 bg-green-100 rounded-full">
+                    <span className="text-2xl">💰</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-blue-600">{((analytics.completed_orders / analytics.total_orders) * 100).toFixed(1)}%</p>
+                    <p className="text-sm text-gray-600">{analytics.completed_orders} delivered</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
                     <span className="text-2xl">✅</span>
                   </div>
                 </div>
@@ -135,24 +150,67 @@ const AnalyticsDashboard = ({ onBack }) => {
                 <div className="flex items-center">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-600">Avg Delivery Time</p>
-                    <p className="text-2xl font-bold text-yellow-600">{Math.round(analytics.avg_delivery_time)} min</p>
+                    <p className="text-2xl font-bold text-purple-600">{Math.round(analytics.avg_delivery_time)} min</p>
+                    <p className="text-sm text-gray-600">Customer Rating: {analytics.customer_satisfaction}⭐</p>
                   </div>
-                  <div className="p-3 bg-yellow-100 rounded-full">
+                  <div className="p-3 bg-purple-100 rounded-full">
                     <span className="text-2xl">⏱️</span>
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Business Insights Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-2">📈 Business Growth</h3>
+                <p className="text-3xl font-bold">+{analytics.weekly_growth}%</p>
+                <p className="text-blue-100">Weekly growth rate</p>
+                <p className="text-sm mt-2">🎯 Target: 15% weekly</p>
+              </div>
               
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-purple-600">₹{analytics.total_revenue.toFixed(2)}</p>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <span className="text-2xl">💰</span>
-                  </div>
+              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-2">🕐 Peak Hours</h3>
+                <div className="space-y-1">
+                  {analytics.peak_hours.map((hour, index) => (
+                    <p key={index} className="text-lg font-medium">{hour}</p>
+                  ))}
                 </div>
+                <p className="text-green-100 text-sm">Highest order volume</p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-2">👥 Customer Loyalty</h3>
+                <p className="text-3xl font-bold">{analytics.repeat_customer_rate}%</p>
+                <p className="text-purple-100">Repeat customers</p>
+                <p className="text-sm mt-2">⭐ {analytics.customer_satisfaction}/5.0 satisfaction</p>
+              </div>
+            </div>
+
+            {/* Daily Revenue Trend */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">📈 Daily Revenue Trend (Last 7 Days)</h2>
+              <div className="flex items-end space-x-2 h-40">
+                {analytics.daily_stats.map((day, index) => {
+                  const maxRevenue = Math.max(...analytics.daily_stats.map(d => d.revenue));
+                  const height = (day.revenue / maxRevenue) * 100;
+                  return (
+                    <div key={index} className="flex-1 flex flex-col items-center">
+                      <div className="w-full bg-gray-200 rounded-t" style={{ height: '120px' }}>
+                        <div 
+                          className="bg-gradient-to-t from-green-500 to-green-400 w-full rounded-t flex items-end justify-center"
+                          style={{ height: `${height}%` }}
+                        >
+                          <span className="text-white text-xs font-medium pb-1">₹{day.revenue.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="text-center mt-2">
+                        <p className="text-xs font-medium">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                        <p className="text-xs text-gray-500">{day.orders} orders</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
