@@ -274,17 +274,23 @@ const DeliveryAgentLogin = () => {
 
 // Delivery Agent Login Component
 const DeliveryAgentLogin = () => {
-  const [orders, setOrders] = useState([]);
-  const [orderHistory, setOrderHistory] = useState([]);
-  const [currentTab, setCurrentTab] = useState('active');
-  const [showProfile, setShowProfile] = useState(false);
-  const [agentStats, setAgentStats] = useState({
-    totalDeliveries: 0,
-    avgDeliveryTime: 0,
-    successRate: 0,
-    totalEarnings: 0
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
   });
-  const { user, token } = useAuth();
+  const [showRegister, setShowRegister] = useState(false);
+  const [registerData, setRegisterData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    name: '',
+    phone: '',
+    vehicle_type: 'bike'
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
 
   useEffect(() => {
     fetchOrders();
