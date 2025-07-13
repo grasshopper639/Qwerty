@@ -665,10 +665,14 @@ async def create_order(order: OrderCreate, current_user: UserResponse = Depends(
         raise HTTPException(status_code=403, detail="Only restaurant owners can create orders")
     
     order_dict = order.dict()
+    order_dict["restaurant_id"] = current_user.restaurant_id  # Automatically set restaurant_id
     order_obj = Order(**order_dict)
     
-    # Find best available agent for delivery time estimation
-    available_agents = await db.delivery_agents.find({"is_online": True}).to_list(100)
+    # Find best available agent for delivery time estimation (from same restaurant)
+    available_agents = await db.delivery_agents.find({
+        "is_online": True, 
+        "restaurant_id": current_user.restaurant_id
+    }).to_list(100)
     if available_agents:
         best_agent = DeliveryAgent(**available_agents[0])
         estimate = await estimator.estimate_delivery_time(order_obj, best_agent)
@@ -685,10 +689,11 @@ async def get_orders(
     date_to: Optional[str] = None,
     customer_name: Optional[str] = None,
     priority: Optional[str] = None,
-    limit: int = 100
+    limit: int = 100,
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    """Enhanced order retrieval with filtering"""
-    filter_dict = {}
+    """Enhanced order retrieval with filtering (restaurant-specific)"""
+    filter_dict = {"restaurant_id": current_user.restaurant_id}  # Filter by restaurant
     
     if status:
         filter_dict["status"] = status
@@ -711,8 +716,11 @@ async def get_orders(
     return [Order(**order) for order in orders]
 
 @api_router.get("/orders/{order_id}", response_model=Order)
-async def get_order(order_id: str):
-    order = await db.orders.find_one({"id": order_id})
+async def get_order(order_id: str, current_user: UserResponse = Depends(get_current_user)):
+    order = await db.orders.find_one({
+        "id": order_id, 
+        "restaurant_id": current_user.restaurant_id
+    })
     if order:
         return Order(**order)
     raise HTTPException(status_code=404, detail="Order not found")
