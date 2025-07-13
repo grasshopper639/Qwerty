@@ -483,11 +483,108 @@ async def websocket_owner(websocket: WebSocket, owner_id: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-# Enhanced API Routes
+# Authentication Routes
+@api_router.post("/auth/register", response_model=UserResponse)
+async def register_user(user_data: UserCreate):
+    """Register a new user (restaurant owner or delivery agent)"""
+    
+    # Check if username already exists
+    existing_user = await db.users.find_one({"username": user_data.username})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    # Check if email already exists
+    existing_email = await db.users.find_one({"email": user_data.email})
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Hash password and create user
+    password_hash = hash_password(user_data.password)
+    user_dict = user_data.dict()
+    del user_dict["password"]
+    user_dict["password_hash"] = password_hash
+    
+    user_obj = User(**user_dict)
+    await db.users.insert_one(user_obj.dict())
+    
+    return UserResponse(**user_obj.dict())
+
+@api_router.post("/auth/login", response_model=LoginResponse)
+async def login_user(login_data: UserLogin):
+    """Login user and return session token"""
+    
+    # Find user by username
+    user = await db.users.find_one({"username": login_data.username})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    # Verify password
+    if not verify_password(login_data.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    # Check if user is active
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=401, detail="Account is deactivated")
+    
+    # Update last login
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_login": datetime.utcnow()}}
+    )
+    
+    # Create session
+    token = create_session(user["id"])
+    
+    user_response = UserResponse(**user)
+    return LoginResponse(
+        user=user_response,
+        token=token,
+        message="Login successful"
+    )
+
+@api_router.post("/auth/logout")
+async def logout_user(authorization: str = Header(None)):
+    """Logout user and invalidate session"""
+    
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    
+    token = authorization.split(" ")[1]
+    delete_session(token)
+    
+    return {"message": "Logout successful"}
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: UserResponse = Depends(get_current_user)):
+    """Get current user information"""
+    return current_user
+
+@api_router.put("/auth/profile", response_model=UserResponse)
+async def update_user_profile(
+    user_update: dict,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Update user profile"""
+    
+    # Remove sensitive fields
+    allowed_fields = ["name", "phone", "email"]
+    update_data = {k: v for k, v in user_update.items() if k in allowed_fields}
+    
+    if update_data:
+        await db.users.update_one(
+            {"id": current_user.id},
+            {"$set": update_data}
+        )
+    
+    updated_user = await db.users.find_one({"id": current_user.id})
+    return UserResponse(**updated_user)
+
+# API Routes (Updated with Authentication)
 @api_router.get("/")
 async def root():
     return {"message": "Restaurant Management System API v2.0", "features": [
-        "Real-time GPS tracking",
+        "User Authentication",
+        "Real-time GPS tracking", 
         "AI-powered delivery estimates",
         "Advanced analytics",
         "Integration hub",
@@ -495,7 +592,10 @@ async def root():
     ]}
 
 @api_router.post("/orders", response_model=Order)
-async def create_order(order: OrderCreate):
+async def create_order(order: OrderCreate, current_user: UserResponse = Depends(get_current_user)):
+    if current_user.role != "restaurant_owner":
+        raise HTTPException(status_code=403, detail="Only restaurant owners can create orders")
+    
     order_dict = order.dict()
     order_obj = Order(**order_dict)
     
