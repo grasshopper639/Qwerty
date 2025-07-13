@@ -432,6 +432,11 @@ class RestaurantAPITester:
         # Test authentication endpoints
         print("\n🔐 Testing Authentication...")
         restaurant_owner = self.test_register_restaurant_owner()
+        if not restaurant_owner:
+            # Retry registration once more
+            print("Retrying restaurant owner registration...")
+            restaurant_owner = self.test_register_restaurant_owner()
+            
         delivery_agent_user = self.test_register_delivery_agent_user()
         
         restaurant_login = None
@@ -443,18 +448,19 @@ class RestaurantAPITester:
         if delivery_agent_user:
             delivery_login = self.test_login_delivery_agent(delivery_agent_user['username'], "SecurePass123!")
         
-        # Test order management (both authenticated and non-authenticated)
+        # Test order management (authenticated only since authentication is required)
         print("\n📦 Testing Order Management...")
-        order = self.test_create_order()
-        self.test_get_orders()
+        self.test_get_orders()  # This doesn't require auth
         
-        # Test authenticated order creation if we have a restaurant owner token
+        authenticated_order = None
         if restaurant_login:
-            self.test_authenticated_order_creation(restaurant_login['token'])
-        
-        if order:
-            self.test_update_order_status(order['id'])
-            self.test_send_order_for_delivery(order['id'])
+            authenticated_order = self.test_authenticated_order_creation(restaurant_login['token'])
+            
+            if authenticated_order:
+                self.test_update_order_status(authenticated_order['id'])
+                self.test_send_order_for_delivery(authenticated_order['id'], restaurant_login['token'])
+        else:
+            self.log_test("Authenticated Order Tests", False, "No restaurant owner token available - skipping authenticated order tests")
         
         # Test delivery agent management
         print("\n🚚 Testing Delivery Agent Management...")
