@@ -403,6 +403,9 @@ const DeliveryAgentDashboard = () => {
             <div>
               <h1 className="text-xl font-bold text-gray-900">🚚 Delivery Dashboard</h1>
               <p className="text-sm text-gray-600">Welcome back, {user.name}!</p>
+              {restaurant && (
+                <p className="text-xs text-gray-500">{restaurant.name}</p>
+              )}
             </div>
             <div className="relative">
               <button
