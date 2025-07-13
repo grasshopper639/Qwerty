@@ -187,7 +187,7 @@ const AnalyticsDashboard = ({ onBack }) => {
 };
 
 // GPS Tracking Component
-const GPSTrackingMap = () => {
+const GPSTrackingMap = ({ onBack }) => {
   const [agents, setAgents] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -224,7 +224,16 @@ const GPSTrackingMap = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">📍 Real-time GPS Tracking</h1>
+        {/* Header with Back Button */}
+        <div className="flex items-center mb-8">
+          <button
+            onClick={onBack}
+            className="mr-4 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md transition-colors flex items-center"
+          >
+            ← Back to Dashboard
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">📍 Real-time GPS Tracking</h1>
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Agent List */}
