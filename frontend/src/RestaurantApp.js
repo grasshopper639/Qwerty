@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { UserProfile, LoadingSpinner, getStatusColor } from "./SharedComponents";
+import { RestaurantSelector } from "./RestaurantSelector";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
