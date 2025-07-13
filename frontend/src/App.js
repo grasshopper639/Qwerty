@@ -946,8 +946,10 @@ const DeliveryAgentApp = () => {
       const response = await axios.get(`${API}/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      // Filter orders for this delivery agent or unassigned orders
       const deliveryOrders = response.data.filter(order => 
-        order.status === 'pending' || order.status === 'out_for_delivery'
+        (order.status === 'pending' || order.status === 'out_for_delivery') &&
+        (!order.assigned_to || order.assigned_to === user.id)
       );
       setOrders(deliveryOrders);
     } catch (error) {
@@ -960,8 +962,10 @@ const DeliveryAgentApp = () => {
       const response = await axios.get(`${API}/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      // Filter delivered orders assigned to this agent
       const deliveredOrders = response.data.filter(order => 
-        order.status === 'delivered' || order.status === 'cancelled'
+        (order.status === 'delivered' || order.status === 'cancelled') &&
+        order.assigned_to === user.id
       );
       setOrderHistory(deliveredOrders);
     } catch (error) {
