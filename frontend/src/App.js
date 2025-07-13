@@ -98,7 +98,7 @@ const AnalyticsDashboard = () => {
                 <div className="flex items-center">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-purple-600">${analytics.total_revenue.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-purple-600">₹{analytics.total_revenue.toFixed(2)}</p>
                   </div>
                   <div className="p-3 bg-purple-100 rounded-full">
                     <span className="text-2xl">💰</span>
