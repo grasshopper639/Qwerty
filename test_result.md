@@ -116,6 +116,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Created comprehensive FastAPI backend with Order model, CRUD operations, and WebSocket support for real-time communication"
+      - working: true
+        agent: "testing"
+        comment: "Post-separation verification: All order management APIs working perfectly. Authentication now properly enforced - only restaurant owners can create orders (correct behavior). Order creation, retrieval, status updates all functional. Created test order successfully with proper authentication token."
   
   - task: "WebSocket Real-time Communication"
     implemented: true
