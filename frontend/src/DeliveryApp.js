@@ -272,25 +272,19 @@ const DeliveryAgentLogin = () => {
   );
 };
 
-// Delivery Agent Login Component
-const DeliveryAgentLogin = () => {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+// Main Delivery Agent Dashboard
+const DeliveryAgentDashboard = () => {
+  const [orders, setOrders] = useState([]);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [currentTab, setCurrentTab] = useState('active');
+  const [showProfile, setShowProfile] = useState(false);
+  const [agentStats, setAgentStats] = useState({
+    totalDeliveries: 0,
+    avgDeliveryTime: 0,
+    successRate: 0,
+    totalEarnings: 0
   });
-  const [showRegister, setShowRegister] = useState(false);
-  const [registerData, setRegisterData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    phone: '',
-    vehicle_type: 'bike'
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { user, token } = useAuth();
 
   useEffect(() => {
     fetchOrders();
@@ -376,22 +370,6 @@ const DeliveryAgentLogin = () => {
       }
     } catch (error) {
       console.error('Error updating order status:', error);
-    }
-  };
-
-  const openNavigation = (address) => {
-    const encodedAddress = encodeURIComponent(address);
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    window.open(googleMapsUrl, '_blank');
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'out_for_delivery': return 'bg-blue-100 text-blue-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -616,23 +594,21 @@ function DeliveryApp() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading Delivery App...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading Delivery App..." />;
   }
 
   return (
     <div className="DeliveryApp">
-      <AuthProvider>
-        {user ? <DeliveryAgentDashboard /> : <DeliveryAgentLogin />}
-      </AuthProvider>
+      {user ? <DeliveryAgentDashboard /> : <DeliveryAgentLogin />}
     </div>
   );
 }
 
-export default DeliveryApp;
+// Export with AuthProvider wrapper
+export default function DeliveryAppWithAuth() {
+  return (
+    <AuthProvider userType="delivery">
+      <DeliveryApp />
+    </AuthProvider>
+  );
+}
