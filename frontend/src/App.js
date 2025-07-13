@@ -63,8 +63,292 @@ const AnalyticsDashboard = ({ onBack }) => {
           <h1 className="text-3xl font-bold text-gray-900">📊 Analytics Dashboard</h1>
         </div>
         
-        {analytics && (
+        {analytics && analytics.total_orders ? (
           <>
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                    <p className="text-2xl font-bold text-gray-900">{analytics.total_orders}</p>
+                    <p className="text-sm text-green-600">+{analytics.weekly_growth}% this week</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <span className="text-2xl">📋</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">₹{analytics.total_revenue.toLocaleString()}</p>
+                    <p className="text-sm text-gray-600">Avg: ₹{analytics.avg_order_value}</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <span className="text-2xl">💰</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-blue-600">{((analytics.completed_orders / analytics.total_orders) * 100).toFixed(1)}%</p>
+                    <p className="text-sm text-gray-600">{analytics.completed_orders} delivered</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Avg Delivery Time</p>
+                    <p className="text-2xl font-bold text-purple-600">{Math.round(analytics.avg_delivery_time)} min</p>
+                    <p className="text-sm text-gray-600">Customer Rating: {analytics.customer_satisfaction}⭐</p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <span className="text-2xl">⏱️</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Business Insights Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-2">📈 Business Growth</h3>
+                <p className="text-3xl font-bold">+{analytics.weekly_growth}%</p>
+                <p className="text-blue-100">Weekly growth rate</p>
+                <p className="text-sm mt-2">🎯 Target: 15% weekly</p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-2">🕐 Peak Hours</h3>
+                <div className="space-y-1">
+                  {analytics.peak_hours.map((hour, index) => (
+                    <p key={index} className="text-lg font-medium">{hour}</p>
+                  ))}
+                </div>
+                <p className="text-green-100 text-sm">Highest order volume</p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-2">👥 Customer Loyalty</h3>
+                <p className="text-3xl font-bold">{analytics.repeat_customer_rate}%</p>
+                <p className="text-purple-100">Repeat customers</p>
+                <p className="text-sm mt-2">⭐ {analytics.customer_satisfaction}/5.0 satisfaction</p>
+              </div>
+            </div>
+
+            {/* Daily Revenue Trend */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">📈 Daily Revenue Trend (Last 7 Days)</h2>
+              <div className="flex items-end space-x-2 h-40">
+                {analytics.daily_stats.map((day, index) => {
+                  const maxRevenue = Math.max(...analytics.daily_stats.map(d => d.revenue));
+                  const height = (day.revenue / maxRevenue) * 100;
+                  return (
+                    <div key={index} className="flex-1 flex flex-col items-center">
+                      <div className="w-full bg-gray-200 rounded-t" style={{ height: '120px' }}>
+                        <div 
+                          className="bg-gradient-to-t from-green-500 to-green-400 w-full rounded-t flex items-end justify-center"
+                          style={{ height: `${height}%` }}
+                        >
+                          <span className="text-white text-xs font-medium pb-1">₹{day.revenue.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="text-center mt-2">
+                        <p className="text-xs font-medium">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                        <p className="text-xs text-gray-500">{day.orders} orders</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Agent Performance */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">🚚 Agent Performance</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2">Agent</th>
+                      <th className="text-left py-2">Total Orders</th>
+                      <th className="text-left py-2">Completed</th>
+                      <th className="text-left py-2">Success Rate</th>
+                      <th className="text-left py-2">Avg Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.agent_performance.map((agent) => (
+                      <tr key={agent.agent_id} className="border-b">
+                        <td className="py-2 font-medium">{agent.name}</td>
+                        <td className="py-2">{agent.total_orders}</td>
+                        <td className="py-2">{agent.completed_orders}</td>
+                        <td className="py-2">{agent.success_rate.toFixed(1)}%</td>
+                        <td className="py-2">{Math.round(agent.avg_delivery_time)} min</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Top Delivery Zones */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">🗺️ Top Delivery Zones</h2>
+              <div className="space-y-3">
+                {analytics.top_delivery_zones.map((zone, index) => {
+                  const maxCount = Math.max(...analytics.top_delivery_zones.map(z => z.count));
+                  const percentage = (zone.count / maxCount) * 100;
+                  return (
+                    <div key={index} className="flex items-center">
+                      <div className="w-4 h-4 rounded-full bg-blue-500 mr-3 text-white text-xs flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium text-gray-700">{zone.zone}</span>
+                          <span className="text-sm text-gray-500">{zone.count} orders</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="ml-3 text-sm font-medium text-blue-600">
+                        {((zone.count / analytics.total_orders) * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Hourly Distribution */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">📈 Hourly Order Distribution</h2>
+              <div className="flex items-end space-x-1 h-32 mb-4">
+                {Object.entries(analytics.hourly_distribution).map(([hour, count]) => {
+                  const maxCount = Math.max(...Object.values(analytics.hourly_distribution));
+                  const height = Math.max((count / maxCount) * 100, 5);
+                  const isPeakHour = count > maxCount * 0.7;
+                  return (
+                    <div key={hour} className="flex-1 flex flex-col items-center">
+                      <div 
+                        className={`w-full rounded-t transition-all duration-300 ${
+                          isPeakHour ? 'bg-red-500' : 'bg-blue-500'
+                        }`}
+                        style={{ height: `${height}%` }}
+                      ></div>
+                      <span className="text-xs mt-1 font-medium">{hour}h</span>
+                      <span className="text-xs text-gray-500">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-center space-x-6 text-sm">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span>Normal Hours</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
+                  <span>Peak Hours</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Business Recommendations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-3">💡 Business Insights</h3>
+                <div className="space-y-2 text-sm">
+                  <p>• Peak hours: 12PM-1PM & 7PM-8PM</p>
+                  <p>• {analytics.top_delivery_zones[0].zone} is your top delivery area</p>
+                  <p>• Average order value: ₹{analytics.avg_order_value}</p>
+                  <p>• {analytics.repeat_customer_rate}% customer retention rate</p>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-3">🎯 Recommendations</h3>
+                <div className="space-y-2 text-sm">
+                  <p>• Add more delivery agents during peak hours</p>
+                  <p>• Focus marketing on {analytics.top_delivery_zones[4].zone} area</p>
+                  <p>• Target lunch promotions (11AM-2PM)</p>
+                  <p>• Improve delivery time to under 25 minutes</p>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">📊</div>
+            <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Analytics Data Yet</h2>
+            <p className="text-gray-500 mb-6">Start taking orders to see your business analytics and insights.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                    <p className="text-2xl font-bold text-gray-900">0</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <span className="text-2xl">📋</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">₹0</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <span className="text-2xl">💰</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-blue-600">0%</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Avg Delivery Time</p>
+                    <p className="text-2xl font-bold text-purple-600">0 min</p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <span className="text-2xl">⏱️</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow-md p-6">
