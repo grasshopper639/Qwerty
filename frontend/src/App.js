@@ -246,35 +246,67 @@ const AnalyticsDashboard = ({ onBack }) => {
             {/* Top Delivery Zones */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-8">
               <h2 className="text-xl font-semibold mb-4">🗺️ Top Delivery Zones</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {analytics.top_delivery_zones.slice(0, 6).map((zone, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">{zone.zone}</span>
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-                      {zone.count} orders
-                    </span>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {analytics.top_delivery_zones.map((zone, index) => {
+                  const maxCount = Math.max(...analytics.top_delivery_zones.map(z => z.count));
+                  const percentage = (zone.count / maxCount) * 100;
+                  return (
+                    <div key={index} className="flex items-center">
+                      <div className="w-4 h-4 rounded-full bg-blue-500 mr-3 text-white text-xs flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium text-gray-700">{zone.zone}</span>
+                          <span className="text-sm text-gray-500">{zone.count} orders</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="ml-3 text-sm font-medium text-blue-600">
+                        {((zone.count / analytics.total_orders) * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Hourly Distribution */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
               <h2 className="text-xl font-semibold mb-4">📈 Hourly Order Distribution</h2>
-              <div className="flex items-end space-x-1 h-32">
+              <div className="flex items-end space-x-1 h-32 mb-4">
                 {Object.entries(analytics.hourly_distribution).map(([hour, count]) => {
-                  const height = Math.max((count / Math.max(...Object.values(analytics.hourly_distribution))) * 100, 5);
+                  const maxCount = Math.max(...Object.values(analytics.hourly_distribution));
+                  const height = Math.max((count / maxCount) * 100, 5);
+                  const isPeakHour = count > maxCount * 0.7;
                   return (
                     <div key={hour} className="flex-1 flex flex-col items-center">
                       <div 
-                        className="bg-blue-500 w-full rounded-t"
+                        className={`w-full rounded-t transition-all duration-300 ${
+                          isPeakHour ? 'bg-red-500' : 'bg-blue-500'
+                        }`}
                         style={{ height: `${height}%` }}
                       ></div>
-                      <span className="text-xs mt-1">{hour}h</span>
+                      <span className="text-xs mt-1 font-medium">{hour}h</span>
                       <span className="text-xs text-gray-500">{count}</span>
                     </div>
                   );
                 })}
+              </div>
+              <div className="flex justify-center space-x-6 text-sm">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span>Normal Hours</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
+                  <span>Peak Hours</span>
+                </div>
               </div>
             </div>
           </>
