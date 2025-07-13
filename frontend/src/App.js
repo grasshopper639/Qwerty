@@ -544,6 +544,7 @@ const APIManagement = ({ onBack }) => {
 // Restaurant Owner Dashboard
 const RestaurantDashboard = () => {
   const [orders, setOrders] = useState([]);
+  const [deliveryAgents, setDeliveryAgents] = useState([]);
   const [newOrder, setNewOrder] = useState({
     customer_name: '',
     customer_phone: '',
@@ -554,10 +555,14 @@ const RestaurantDashboard = () => {
   });
   const [currentView, setCurrentView] = useState('orders');
   const [showProfile, setShowProfile] = useState(false);
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedAgentId, setSelectedAgentId] = useState('');
   const { user, token } = useAuth();
 
   useEffect(() => {
     fetchOrders();
+    fetchDeliveryAgents();
   }, []);
 
   const fetchOrders = async () => {
@@ -568,6 +573,17 @@ const RestaurantDashboard = () => {
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
+    }
+  };
+
+  const fetchDeliveryAgents = async () => {
+    try {
+      const response = await axios.get(`${API}/delivery-agents`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDeliveryAgents(response.data);
+    } catch (error) {
+      console.error('Error fetching delivery agents:', error);
     }
   };
 
@@ -596,17 +612,36 @@ const RestaurantDashboard = () => {
     }
   };
 
-  const handleSendForDelivery = async (orderId) => {
+  const handleSendForDelivery = (orderId) => {
+    setSelectedOrderId(orderId);
+    setShowAgentModal(true);
+  };
+
+  const assignOrderToAgent = async () => {
     try {
-      await axios.post(`${API}/orders/${orderId}/send-for-delivery`, {}, {
+      const data = selectedAgentId ? { agent_id: selectedAgentId } : {};
+      await axios.post(`${API}/orders/${selectedOrderId}/send-for-delivery`, data, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       setOrders(prev => prev.map(order => 
-        order.id === orderId 
-          ? { ...order, status: 'out_for_delivery' }
+        order.id === selectedOrderId 
+          ? { 
+              ...order, 
+              status: 'out_for_delivery',
+              assigned_to: selectedAgentId || null
+            }
           : order
       ));
-      alert('Order sent for delivery successfully!');
+      
+      setShowAgentModal(false);
+      setSelectedOrderId(null);
+      setSelectedAgentId('');
+      
+      const assignmentMessage = selectedAgentId 
+        ? `Order assigned to ${deliveryAgents.find(a => a.id === selectedAgentId)?.name} successfully!`
+        : 'Order sent to all available delivery agents!';
+      alert(assignmentMessage);
     } catch (error) {
       console.error('Error sending order for delivery:', error);
       alert('Error sending order for delivery. Please try again.');
@@ -621,6 +656,11 @@ const RestaurantDashboard = () => {
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getAgentName = (agentId) => {
+    const agent = deliveryAgents.find(a => a.id === agentId);
+    return agent ? agent.name : 'Unassigned';
   };
 
   if (currentView === 'analytics') {
@@ -780,6 +820,12 @@ const RestaurantDashboard = () => {
                       {order.order_value > 0 && (
                         <p className="text-gray-600">💰 ₹{order.order_value}</p>
                       )}
+                      {order.assigned_to && (
+                        <p className="text-purple-600">👤 Assigned to: {getAgentName(order.assigned_to)}</p>
+                      )}
+                      {order.estimated_delivery_time && (
+                        <p className="text-blue-600">⏱️ ETA: {order.estimated_delivery_time} min</p>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
@@ -796,7 +842,7 @@ const RestaurantDashboard = () => {
                       onClick={() => handleSendForDelivery(order.id)}
                       className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm"
                     >
-                      🚚 Send for Delivery
+                      🚚 Assign & Send for Delivery
                     </button>
                   )}
                 </div>
@@ -804,6 +850,73 @@ const RestaurantDashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Agent Assignment Modal */}
+        {showAgentModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Assign Delivery Agent</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Delivery Agent (or leave blank to send to all available agents)
+                </label>
+                <select
+                  value={selectedAgentId}
+                  onChange={(e) => setSelectedAgentId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">🎯 Send to All Available Agents</option>
+                  {deliveryAgents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      👤 {agent.name} {agent.is_online ? '(Online)' : '(Offline)'} 
+                      {agent.phone && ` - ${agent.phone}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedAgentId && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Agent Details:</h4>
+                  {(() => {
+                    const selectedAgent = deliveryAgents.find(a => a.id === selectedAgentId);
+                    return selectedAgent ? (
+                      <div className="text-sm text-blue-800">
+                        <p>Name: {selectedAgent.name}</p>
+                        <p>Phone: {selectedAgent.phone || 'Not provided'}</p>
+                        <p>Status: {selectedAgent.is_online ? '🟢 Online' : '🔴 Offline'}</p>
+                        <p>Vehicle: {selectedAgent.vehicle_type || 'Not specified'}</p>
+                        {selectedAgent.total_deliveries && (
+                          <p>Total Deliveries: {selectedAgent.total_deliveries}</p>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAgentModal(false);
+                    setSelectedOrderId(null);
+                    setSelectedAgentId('');
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={assignOrderToAgent}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+                >
+                  {selectedAgentId ? 'Assign to Agent' : 'Send to All'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
