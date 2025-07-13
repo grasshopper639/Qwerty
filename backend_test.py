@@ -13,7 +13,7 @@ from datetime import datetime
 import time
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://9e298750-2acb-436d-a706-241a729d9be7.preview.emergentagent.com"
+BACKEND_URL = "https://7b778c88-08b3-41b3-b60e-981a95b91649.preview.emergentagent.com"
 API_BASE_URL = f"{BACKEND_URL}/api"
 WS_BASE_URL = BACKEND_URL.replace("https://", "wss://")
 
