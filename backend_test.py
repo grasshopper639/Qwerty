@@ -168,6 +168,131 @@ class RestaurantAPITester:
             self.log_test("Get Delivery Agents", False, f"Error: {str(e)}")
             return None
 
+    def test_register_restaurant_owner(self):
+        """Test POST /api/auth/register endpoint for restaurant owner"""
+        try:
+            user_data = {
+                "username": f"restaurant_owner_{uuid.uuid4().hex[:8]}",
+                "email": f"owner_{uuid.uuid4().hex[:8]}@restaurant.com",
+                "password": "SecurePass123!",
+                "role": "restaurant_owner",
+                "name": "Maria Rodriguez",
+                "phone": "+1-555-0123"
+            }
+            
+            response = requests.post(f"{API_BASE_URL}/auth/register", json=user_data, timeout=10)
+            
+            if response.status_code == 200:
+                user = response.json()
+                self.log_test("Register Restaurant Owner", True, f"Restaurant owner registered with ID: {user['id']}")
+                return user
+            else:
+                self.log_test("Register Restaurant Owner", False, f"Status code: {response.status_code}, Response: {response.text}")
+                return None
+        except Exception as e:
+            self.log_test("Register Restaurant Owner", False, f"Error: {str(e)}")
+            return None
+
+    def test_register_delivery_agent_user(self):
+        """Test POST /api/auth/register endpoint for delivery agent"""
+        try:
+            user_data = {
+                "username": f"delivery_agent_{uuid.uuid4().hex[:8]}",
+                "email": f"agent_{uuid.uuid4().hex[:8]}@delivery.com",
+                "password": "SecurePass123!",
+                "role": "delivery_agent",
+                "name": "Carlos Martinez",
+                "phone": "+1-555-0456"
+            }
+            
+            response = requests.post(f"{API_BASE_URL}/auth/register", json=user_data, timeout=10)
+            
+            if response.status_code == 200:
+                user = response.json()
+                self.log_test("Register Delivery Agent User", True, f"Delivery agent user registered with ID: {user['id']}")
+                return user
+            else:
+                self.log_test("Register Delivery Agent User", False, f"Status code: {response.status_code}, Response: {response.text}")
+                return None
+        except Exception as e:
+            self.log_test("Register Delivery Agent User", False, f"Error: {str(e)}")
+            return None
+
+    def test_login_restaurant_owner(self, username, password):
+        """Test POST /api/auth/login endpoint for restaurant owner"""
+        try:
+            login_data = {
+                "username": username,
+                "password": password
+            }
+            
+            response = requests.post(f"{API_BASE_URL}/auth/login", json=login_data, timeout=10)
+            
+            if response.status_code == 200:
+                login_result = response.json()
+                if login_result['user']['role'] == 'restaurant_owner':
+                    self.log_test("Login Restaurant Owner", True, f"Restaurant owner logged in successfully, token received")
+                    return login_result
+                else:
+                    self.log_test("Login Restaurant Owner", False, f"Wrong role returned: {login_result['user']['role']}")
+                    return None
+            else:
+                self.log_test("Login Restaurant Owner", False, f"Status code: {response.status_code}, Response: {response.text}")
+                return None
+        except Exception as e:
+            self.log_test("Login Restaurant Owner", False, f"Error: {str(e)}")
+            return None
+
+    def test_login_delivery_agent(self, username, password):
+        """Test POST /api/auth/login endpoint for delivery agent"""
+        try:
+            login_data = {
+                "username": username,
+                "password": password
+            }
+            
+            response = requests.post(f"{API_BASE_URL}/auth/login", json=login_data, timeout=10)
+            
+            if response.status_code == 200:
+                login_result = response.json()
+                if login_result['user']['role'] == 'delivery_agent':
+                    self.log_test("Login Delivery Agent", True, f"Delivery agent logged in successfully, token received")
+                    return login_result
+                else:
+                    self.log_test("Login Delivery Agent", False, f"Wrong role returned: {login_result['user']['role']}")
+                    return None
+            else:
+                self.log_test("Login Delivery Agent", False, f"Status code: {response.status_code}, Response: {response.text}")
+                return None
+        except Exception as e:
+            self.log_test("Login Delivery Agent", False, f"Error: {str(e)}")
+            return None
+
+    def test_authenticated_order_creation(self, token):
+        """Test POST /api/orders endpoint with authentication"""
+        try:
+            order_data = {
+                "customer_name": "Isabella Garcia",
+                "customer_phone": "+1-555-0789",
+                "customer_address": "789 Maple Avenue, Uptown, City 54321",
+                "order_id": f"AUTH-ORD-{uuid.uuid4().hex[:8].upper()}"
+            }
+            
+            headers = {"Authorization": f"Bearer {token}"}
+            response = requests.post(f"{API_BASE_URL}/orders", json=order_data, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                order = response.json()
+                self.created_orders.append(order['id'])
+                self.log_test("Authenticated Order Creation", True, f"Authenticated order created with ID: {order['id']}")
+                return order
+            else:
+                self.log_test("Authenticated Order Creation", False, f"Status code: {response.status_code}, Response: {response.text}")
+                return None
+        except Exception as e:
+            self.log_test("Authenticated Order Creation", False, f"Error: {str(e)}")
+            return None
+
     async def test_websocket_owner_connection(self):
         """Test WebSocket connection for restaurant owner"""
         try:
