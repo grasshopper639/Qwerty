@@ -240,6 +240,7 @@ class DeliveryEstimate(BaseModel):
 
 class Order(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    restaurant_id: str  # Links order to specific restaurant
     customer_name: str
     customer_phone: str
     customer_address: str
