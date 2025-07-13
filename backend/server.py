@@ -510,19 +510,53 @@ async def websocket_owner(websocket: WebSocket, owner_id: str):
         manager.disconnect(websocket)
 
 # Authentication Routes
+# Restaurant Management Endpoints
+@api_router.post("/restaurants", response_model=Restaurant)
+async def create_restaurant(restaurant_data: RestaurantCreate):
+    """Create a new restaurant"""
+    
+    # Check if restaurant name already exists
+    existing_restaurant = await db.restaurants.find_one({"name": restaurant_data.name})
+    if existing_restaurant:
+        raise HTTPException(status_code=400, detail="Restaurant name already exists")
+    
+    restaurant_obj = Restaurant(**restaurant_data.dict())
+    await db.restaurants.insert_one(restaurant_obj.dict())
+    
+    return restaurant_obj
+
+@api_router.get("/restaurants", response_model=List[Restaurant])
+async def get_restaurants():
+    """Get all restaurants (for admin purposes)"""
+    restaurants = []
+    async for restaurant in db.restaurants.find():
+        restaurants.append(Restaurant(**restaurant))
+    return restaurants
+
+@api_router.get("/restaurants/{restaurant_id}", response_model=Restaurant)
+async def get_restaurant(restaurant_id: str):
+    """Get restaurant by ID"""
+    restaurant = await db.restaurants.find_one({"id": restaurant_id})
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    return Restaurant(**restaurant)
+
 @api_router.post("/auth/register", response_model=UserResponse)
 async def register_user(user_data: UserCreate):
     """Register a new user (restaurant owner or delivery agent)"""
     
-    # Check if username already exists
-    existing_user = await db.users.find_one({"username": user_data.username})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+    # Verify restaurant exists
+    restaurant = await db.restaurants.find_one({"id": user_data.restaurant_id})
+    if not restaurant:
+        raise HTTPException(status_code=400, detail="Invalid restaurant ID")
     
-    # Check if email already exists
-    existing_email = await db.users.find_one({"email": user_data.email})
-    if existing_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    # Check if username already exists in this restaurant
+    existing_user = await db.users.find_one({
+        "username": user_data.username, 
+        "restaurant_id": user_data.restaurant_id
+    })
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered for this restaurant")
     
     # Hash password and create user
     password_hash = hash_password(user_data.password)
@@ -539,8 +573,16 @@ async def register_user(user_data: UserCreate):
 async def login_user(login_data: UserLogin):
     """Login user and return session token"""
     
-    # Find user by username
-    user = await db.users.find_one({"username": login_data.username})
+    # Verify restaurant exists
+    restaurant = await db.restaurants.find_one({"id": login_data.restaurant_id})
+    if not restaurant:
+        raise HTTPException(status_code=401, detail="Invalid restaurant")
+    
+    # Find user by username and restaurant_id
+    user = await db.users.find_one({
+        "username": login_data.username,
+        "restaurant_id": login_data.restaurant_id
+    })
     if not user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
