@@ -309,6 +309,29 @@ const AnalyticsDashboard = ({ onBack }) => {
                 </div>
               </div>
             </div>
+
+            {/* Business Recommendations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-3">💡 Business Insights</h3>
+                <div className="space-y-2 text-sm">
+                  <p>• Peak hours: 12PM-1PM & 7PM-8PM</p>
+                  <p>• {analytics.top_delivery_zones[0].zone} is your top delivery area</p>
+                  <p>• Average order value: ₹{analytics.avg_order_value}</p>
+                  <p>• {analytics.repeat_customer_rate}% customer retention rate</p>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+                <h3 className="text-lg font-semibold mb-3">🎯 Recommendations</h3>
+                <div className="space-y-2 text-sm">
+                  <p>• Add more delivery agents during peak hours</p>
+                  <p>• Focus marketing on {analytics.top_delivery_zones[4].zone} area</p>
+                  <p>• Target lunch promotions (11AM-2PM)</p>
+                  <p>• Improve delivery time to under 25 minutes</p>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>
