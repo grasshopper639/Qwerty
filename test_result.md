@@ -153,6 +153,18 @@ backend:
         agent: "testing"
         comment: "Post-separation verification: Delivery agent management APIs remain fully functional. Successfully created new delivery agent and retrieved agent list. No issues detected after frontend separation."
 
+  - task: "Authentication System for Both User Types"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Post-separation verification: Authentication endpoints working perfectly for both user types. Successfully tested POST /api/auth/register and POST /api/auth/login for both restaurant owners and delivery agents. Role-based access control properly enforced. Token generation and validation functional. Some intermittent network timeouts observed but core authentication logic is solid."
+
 frontend:
   - task: "Restaurant Owner Dashboard"
     implemented: true
