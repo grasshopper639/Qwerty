@@ -425,15 +425,35 @@ class RestaurantAPITester:
             print("❌ Health check failed - stopping tests")
             return False
         
-        # Test order management
+        # Test authentication endpoints
+        print("\n🔐 Testing Authentication...")
+        restaurant_owner = self.test_register_restaurant_owner()
+        delivery_agent_user = self.test_register_delivery_agent_user()
+        
+        restaurant_login = None
+        delivery_login = None
+        
+        if restaurant_owner:
+            restaurant_login = self.test_login_restaurant_owner(restaurant_owner['username'], "SecurePass123!")
+        
+        if delivery_agent_user:
+            delivery_login = self.test_login_delivery_agent(delivery_agent_user['username'], "SecurePass123!")
+        
+        # Test order management (both authenticated and non-authenticated)
+        print("\n📦 Testing Order Management...")
         order = self.test_create_order()
         self.test_get_orders()
+        
+        # Test authenticated order creation if we have a restaurant owner token
+        if restaurant_login:
+            self.test_authenticated_order_creation(restaurant_login['token'])
         
         if order:
             self.test_update_order_status(order['id'])
             self.test_send_order_for_delivery(order['id'])
         
         # Test delivery agent management
+        print("\n🚚 Testing Delivery Agent Management...")
         agent = self.test_create_delivery_agent()
         self.test_get_delivery_agents()
         
