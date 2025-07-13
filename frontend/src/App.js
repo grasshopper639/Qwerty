@@ -8,7 +8,7 @@ const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
 // Analytics Dashboard Component
-const AnalyticsDashboard = () => {
+const AnalyticsDashboard = ({ onBack }) => {
   const [analytics, setAnalytics] = useState(null);
   const [heatMapData, setHeatMapData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,16 @@ const AnalyticsDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">📊 Analytics Dashboard</h1>
+        {/* Header with Back Button */}
+        <div className="flex items-center mb-8">
+          <button
+            onClick={onBack}
+            className="mr-4 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md transition-colors flex items-center"
+          >
+            ← Back to Dashboard
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">📊 Analytics Dashboard</h1>
+        </div>
         
         {analytics && (
           <>
