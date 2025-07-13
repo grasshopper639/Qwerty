@@ -284,6 +284,7 @@ class OrderFilter(BaseModel):
 
 class DeliveryAgent(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    restaurant_id: str  # Links agent to specific restaurant
     name: str
     phone: str
     email: Optional[str] = None
