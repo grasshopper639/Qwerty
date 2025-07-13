@@ -272,39 +272,8 @@ const DeliveryAgentLogin = () => {
   );
 };
 
-// User Profile Component
-const UserProfile = ({ onClose }) => {
-  const { user, logout } = useAuth();
-
-  return (
-    <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border p-4 min-w-64 z-50">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-lg font-semibold">Profile</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-          ×
-        </button>
-      </div>
-      
-      <div className="space-y-2 mb-4">
-        <p className="text-sm"><strong>Name:</strong> {user.name}</p>
-        <p className="text-sm"><strong>Username:</strong> {user.username}</p>
-        <p className="text-sm"><strong>Email:</strong> {user.email}</p>
-        <p className="text-sm"><strong>Phone:</strong> {user.phone}</p>
-        <p className="text-sm"><strong>Vehicle:</strong> {user.vehicle_type || 'Not specified'}</p>
-      </div>
-      
-      <button
-        onClick={logout}
-        className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
-      >
-        Logout
-      </button>
-    </div>
-  );
-};
-
-// Main Delivery Agent Dashboard
-const DeliveryAgentDashboard = () => {
+// Delivery Agent Login Component
+const DeliveryAgentLogin = () => {
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [currentTab, setCurrentTab] = useState('active');
