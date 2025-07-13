@@ -841,7 +841,7 @@ const RestaurantDashboard = () => {
                     <p className="text-gray-600">📞 {order.customer_phone}</p>
                     <p className="text-gray-600">📍 {order.customer_address}</p>
                     {order.order_value > 0 && (
-                      <p className="text-gray-600">💰 ${order.order_value}</p>
+                      <p className="text-gray-600">💰 ₹{order.order_value}</p>
                     )}
                   </div>
                   <div className="text-right">
