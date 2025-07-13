@@ -1,127 +1,12 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
+import { AuthProvider, useAuth } from "./AuthContext";
+import { UserProfile, LoadingSpinner, getStatusColor } from "./SharedComponents";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
-
-// Authentication Context for Restaurant Owners
-const AuthContext = createContext(null);
-
-const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('restaurant_token'));
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const response = await axios.get(`${API}/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (response.data.role === 'restaurant_owner') {
-            setUser(response.data);
-          } else {
-            // Not a restaurant owner, clear token
-            localStorage.removeItem('restaurant_token');
-            setToken(null);
-          }
-        } catch (error) {
-          localStorage.removeItem('restaurant_token');
-          setToken(null);
-        }
-      }
-      setLoading(false);
-    };
-    initAuth();
-  }, [token]);
-
-  const login = async (username, password) => {
-    try {
-      const response = await axios.post(`${API}/auth/login`, {
-        username,
-        password
-      });
-      const { user, token: newToken } = response.data;
-      
-      if (user.role !== 'restaurant_owner') {
-        return { 
-          success: false, 
-          error: 'This login is only for restaurant owners. Please use the delivery agent app.' 
-        };
-      }
-      
-      setUser(user);
-      setToken(newToken);
-      localStorage.setItem('restaurant_token', newToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
-      };
-    }
-  };
-
-  const register = async (userData) => {
-    try {
-      const registrationData = {
-        ...userData,
-        role: 'restaurant_owner'
-      };
-      await axios.post(`${API}/auth/register`, registrationData);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.detail || 'Registration failed'
-      };
-    }
-  };
-
-  const logout = async () => {
-    try {
-      if (token) {
-        await axios.post(`${API}/auth/logout`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem('restaurant_token');
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  };
-
-  const value = {
-    user,
-    token,
-    login,
-    register,
-    logout,
-    isAuthenticated: !!user,
-    loading
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
 
 // Restaurant Owner Login Component
 const RestaurantOwnerLogin = () => {
@@ -136,7 +21,9 @@ const RestaurantOwnerLogin = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    phone: ''
+    phone: '',
+    restaurant_name: '',
+    restaurant_address: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -179,7 +66,7 @@ const RestaurantOwnerLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -189,7 +76,7 @@ const RestaurantOwnerLogin = () => {
             Restaurant Owner {showRegister ? 'Registration' : 'Login'}
           </h1>
           <p className="text-gray-600">
-            {showRegister ? 'Create your restaurant management account' : 'Access your restaurant dashboard'}
+            {showRegister ? 'Create your restaurant account' : 'Sign in to manage your restaurant'}
           </p>
         </div>
 
@@ -233,16 +120,16 @@ const RestaurantOwnerLogin = () => {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Logging in...' : 'Login to Dashboard'}
+              {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
         ) : (
           // Registration Form
           <form onSubmit={handleRegister} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Restaurant/Manager Name
+                  Full Name
                 </label>
                 <input
                   type="text"
@@ -262,9 +149,34 @@ const RestaurantOwnerLogin = () => {
                   value={registerData.phone}
                   onChange={(e) => setRegisterData({...registerData, phone: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
                 />
               </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Restaurant Name
+              </label>
+              <input
+                type="text"
+                value={registerData.restaurant_name}
+                onChange={(e) => setRegisterData({...registerData, restaurant_name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Restaurant Address
+              </label>
+              <textarea
+                value={registerData.restaurant_address}
+                onChange={(e) => setRegisterData({...registerData, restaurant_address: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="2"
+                required
+              />
             </div>
             
             <div>
@@ -293,7 +205,7 @@ const RestaurantOwnerLogin = () => {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Password
@@ -373,37 +285,6 @@ const RestaurantOwnerLogin = () => {
   );
 };
 
-// User Profile Component
-const UserProfile = ({ onClose }) => {
-  const { user, logout } = useAuth();
-
-  return (
-    <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border p-4 min-w-64 z-50">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-lg font-semibold">Profile</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-          ×
-        </button>
-      </div>
-      
-      <div className="space-y-2 mb-4">
-        <p className="text-sm"><strong>Name:</strong> {user.name}</p>
-        <p className="text-sm"><strong>Username:</strong> {user.username}</p>
-        <p className="text-sm"><strong>Email:</strong> {user.email}</p>
-        <p className="text-sm"><strong>Phone:</strong> {user.phone}</p>
-        <p className="text-sm"><strong>Role:</strong> Restaurant Owner</p>
-      </div>
-      
-      <button
-        onClick={logout}
-        className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
-      >
-        Logout
-      </button>
-    </div>
-  );
-};
-
 // Analytics Dashboard Component
 const AnalyticsDashboard = ({ onBack }) => {
   const [analytics, setAnalytics] = useState(null);
@@ -428,14 +309,7 @@ const AnalyticsDashboard = ({ onBack }) => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading analytics...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading analytics..." />;
   }
 
   return (
@@ -560,7 +434,7 @@ const APIManagement = ({ onBack }) => {
   );
 };
 
-// Main Restaurant Dashboard
+// Restaurant Owner Dashboard
 const RestaurantDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [deliveryAgents, setDeliveryAgents] = useState([]);
@@ -582,14 +456,6 @@ const RestaurantDashboard = () => {
   useEffect(() => {
     fetchOrders();
     fetchDeliveryAgents();
-    
-    // Poll for updates every 15 seconds
-    const interval = setInterval(() => {
-      fetchOrders();
-      fetchDeliveryAgents();
-    }, 15000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   const fetchOrders = async () => {
@@ -675,16 +541,6 @@ const RestaurantDashboard = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'out_for_delivery': return 'bg-blue-100 text-blue-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getAgentName = (agentId) => {
     const agent = deliveryAgents.find(a => a.id === agentId);
     return agent ? agent.name : 'Unassigned';
@@ -706,10 +562,7 @@ const RestaurantDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-4">
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">🏪 Restaurant Management</h1>
-            <p className="text-gray-600">Welcome back, {user.name}!</p>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Restaurant Dashboard</h1>
           <div className="flex items-center space-x-4">
             <div className="flex space-x-2">
               <button
@@ -752,7 +605,7 @@ const RestaurantDashboard = () => {
                 onClick={() => setShowProfile(!showProfile)}
                 className="flex items-center space-x-2 bg-white border border-gray-300 rounded-md px-3 py-2 hover:bg-gray-50"
               >
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium">{user.name}</span>
@@ -767,7 +620,7 @@ const RestaurantDashboard = () => {
         
         {/* Create New Order Form */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">🆕 Create New Order</h2>
+          <h2 className="text-xl font-semibold mb-4">Create New Order</h2>
           <form onSubmit={handleCreateOrder} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
@@ -824,75 +677,23 @@ const RestaurantDashboard = () => {
                 type="submit"
                 className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
-                ➕ Create Order
+                Create Order
               </button>
             </div>
           </form>
         </div>
 
-        {/* Orders Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <span className="text-2xl mr-3">⏳</span>
-              <div>
-                <p className="text-lg font-bold text-yellow-800">
-                  {orders.filter(o => o.status === 'pending').length}
-                </p>
-                <p className="text-sm text-yellow-600">Pending Orders</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <span className="text-2xl mr-3">🚚</span>
-              <div>
-                <p className="text-lg font-bold text-blue-800">
-                  {orders.filter(o => o.status === 'out_for_delivery').length}
-                </p>
-                <p className="text-sm text-blue-600">Out for Delivery</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <span className="text-2xl mr-3">✅</span>
-              <div>
-                <p className="text-lg font-bold text-green-800">
-                  {orders.filter(o => o.status === 'delivered').length}
-                </p>
-                <p className="text-sm text-green-600">Delivered</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <span className="text-2xl mr-3">👥</span>
-              <div>
-                <p className="text-lg font-bold text-purple-800">
-                  {deliveryAgents.filter(a => a.is_online).length}
-                </p>
-                <p className="text-sm text-purple-600">Online Agents</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Orders List */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">📋 Orders ({orders.length})</h2>
+          <h2 className="text-xl font-semibold mb-4">Orders ({orders.length})</h2>
           <div className="space-y-4">
             {orders.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-4xl mb-4">📝</div>
                 <p className="text-gray-500">No orders yet. Create your first order above.</p>
               </div>
             ) : (
               orders.map((order) => (
-                <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div key={order.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-semibold text-lg">{order.customer_name}</h3>
@@ -937,7 +738,7 @@ const RestaurantDashboard = () => {
         {showAgentModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">🎯 Assign Delivery Agent</h3>
+              <h3 className="text-lg font-semibold mb-4">Assign Delivery Agent</h3>
               
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -951,7 +752,7 @@ const RestaurantDashboard = () => {
                   <option value="">🎯 Send to All Available Agents</option>
                   {deliveryAgents.map((agent) => (
                     <option key={agent.id} value={agent.id}>
-                      👤 {agent.name} {agent.is_online ? '(🟢 Online)' : '(🔴 Offline)'} 
+                      👤 {agent.name} {agent.is_online ? '(Online)' : '(Offline)'} 
                       {agent.phone && ` - ${agent.phone}`}
                     </option>
                   ))}
@@ -1009,23 +810,21 @@ function RestaurantApp() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading Restaurant App...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading Restaurant App..." />;
   }
 
   return (
     <div className="RestaurantApp">
-      <AuthProvider>
-        {user ? <RestaurantDashboard /> : <RestaurantOwnerLogin />}
-      </AuthProvider>
+      {user ? <RestaurantDashboard /> : <RestaurantOwnerLogin />}
     </div>
   );
 }
 
-export default RestaurantApp;
+// Export with AuthProvider wrapper
+export default function RestaurantAppWithAuth() {
+  return (
+    <AuthProvider userType="restaurant">
+      <RestaurantApp />
+    </AuthProvider>
+  );
+}
