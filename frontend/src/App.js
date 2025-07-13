@@ -10,12 +10,10 @@ const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws:
 // Analytics Dashboard Component
 const AnalyticsDashboard = ({ onBack }) => {
   const [analytics, setAnalytics] = useState(null);
-  const [heatMapData, setHeatMapData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAnalytics();
-    fetchHeatMapData();
   }, []);
 
   const fetchAnalytics = async () => {
@@ -26,15 +24,6 @@ const AnalyticsDashboard = ({ onBack }) => {
     } catch (error) {
       console.error('Error fetching analytics:', error);
       setLoading(false);
-    }
-  };
-
-  const fetchHeatMapData = async () => {
-    try {
-      const response = await axios.get(`${API}/analytics/heat-map`);
-      setHeatMapData(response.data.heat_map_data);
-    } catch (error) {
-      console.error('Error fetching heat map data:', error);
     }
   };
 
@@ -52,7 +41,6 @@ const AnalyticsDashboard = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-4">
-        {/* Header with Back Button */}
         <div className="flex items-center mb-8">
           <button
             onClick={onBack}
@@ -63,123 +51,60 @@ const AnalyticsDashboard = ({ onBack }) => {
           <h1 className="text-3xl font-bold text-gray-900">📊 Analytics Dashboard</h1>
         </div>
         
-        {analytics && analytics.total_orders ? (
-          <div>
-            <p>Analytics will be shown here when you have order data.</p>
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📊</div>
-            <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Analytics Data Yet</h2>
-            <p className="text-gray-500 mb-6">Start taking orders to see your business analytics and insights.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">0</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <span className="text-2xl">📋</span>
-                  </div>
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">📊</div>
+          <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Analytics Data Yet</h2>
+          <p className="text-gray-500 mb-6">Start taking orders to see your business analytics and insights.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                  <p className="text-2xl font-bold text-gray-900">0</p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <span className="text-2xl">📋</span>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">₹0</p>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <span className="text-2xl">💰</span>
-                  </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold text-green-600">₹0</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-full">
+                  <span className="text-2xl">💰</span>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
-                    <p className="text-2xl font-bold text-blue-600">0%</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <span className="text-2xl">✅</span>
-                  </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                  <p className="text-2xl font-bold text-blue-600">0%</p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <span className="text-2xl">✅</span>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Avg Delivery Time</p>
-                    <p className="text-2xl font-bold text-purple-600">0 min</p>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <span className="text-2xl">⏱️</span>
-                  </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Avg Delivery Time</p>
+                  <p className="text-2xl font-bold text-purple-600">0 min</p>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <span className="text-2xl">⏱️</span>
                 </div>
               </div>
             </div>
           </div>
-        }
-
-        ) : (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📊</div>
-            <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Analytics Data Yet</h2>
-            <p className="text-gray-500 mb-6">Start taking orders to see your business analytics and insights.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">0</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <span className="text-2xl">📋</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">₹0</p>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <span className="text-2xl">💰</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
-                    <p className="text-2xl font-bold text-blue-600">0%</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <span className="text-2xl">✅</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600">Avg Delivery Time</p>
-                    <p className="text-2xl font-bold text-purple-600">0 min</p>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <span className="text-2xl">⏱️</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -189,17 +114,10 @@ const AnalyticsDashboard = ({ onBack }) => {
 const GPSTrackingMap = ({ onBack }) => {
   const [agents, setAgents] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [selectedAgent, setSelectedAgent] = useState(null);
 
   useEffect(() => {
     fetchAgents();
     fetchOrders();
-    
-    const interval = setInterval(() => {
-      fetchAgents(); // Update agent locations
-    }, 5000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   const fetchAgents = async () => {
@@ -223,7 +141,6 @@ const GPSTrackingMap = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-4">
-        {/* Header with Back Button */}
         <div className="flex items-center mb-8">
           <button
             onClick={onBack}
@@ -234,83 +151,10 @@ const GPSTrackingMap = ({ onBack }) => {
           <h1 className="text-3xl font-bold text-gray-900">📍 Real-time GPS Tracking</h1>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Agent List */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">🚚 Active Agents</h2>
-            <div className="space-y-3">
-              {agents.filter(agent => agent.is_online).map((agent) => (
-                <div 
-                  key={agent.id}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedAgent?.id === agent.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                  onClick={() => setSelectedAgent(agent)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{agent.name}</p>
-                      <p className="text-sm text-gray-600">{agent.vehicle_type}</p>
-                      {agent.current_location && (
-                        <p className="text-xs text-green-600">📍 Location updated</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <p className="text-xs text-gray-500 mt-1">Online</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Map Placeholder */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">🗺️ Live Map</h2>
-            <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <span className="text-6xl mb-4 block">🗺️</span>
-                <p className="text-gray-600 mb-2">Interactive Map Integration Ready</p>
-                <p className="text-sm text-gray-500">Will show real-time agent locations and delivery routes</p>
-                {selectedAgent && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p className="font-medium">Selected: {selectedAgent.name}</p>
-                    {selectedAgent.current_location ? (
-                      <p className="text-sm">Location: {selectedAgent.current_location.latitude?.toFixed(6)}, {selectedAgent.current_location.longitude?.toFixed(6)}</p>
-                    ) : (
-                      <p className="text-sm text-gray-500">No location data available</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Active Deliveries */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">🚚 Active Deliveries</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {orders.map((order) => (
-              <div key={order.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium">{order.customer_name}</h3>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    {order.status.replace('_', ' ').toUpperCase()}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 mb-2">Order: {order.order_id}</p>
-                <p className="text-sm text-gray-600 mb-2">📍 {order.customer_address}</p>
-                {order.assigned_to && (
-                  <p className="text-sm text-green-600">👤 Agent: {order.assigned_to}</p>
-                )}
-                {order.estimated_delivery_time && (
-                  <p className="text-sm text-purple-600">⏱️ ETA: {order.estimated_delivery_time} min</p>
-                )}
-              </div>
-            ))}
-          </div>
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">🗺️</div>
+          <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Tracking Data</h2>
+          <p className="text-gray-500">GPS tracking will appear here when delivery agents are active.</p>
         </div>
       </div>
     </div>
@@ -319,59 +163,9 @@ const GPSTrackingMap = ({ onBack }) => {
 
 // API Management Component
 const APIManagement = ({ onBack }) => {
-  const [apiKeys, setApiKeys] = useState([]);
-  const [newKeyName, setNewKeyName] = useState('');
-  const [selectedPermissions, setSelectedPermissions] = useState([]);
-
-  const permissions = [
-    'pos_integration',
-    'accounting_integration',
-    'webhook_access',
-    'analytics_read',
-    'order_management'
-  ];
-
-  useEffect(() => {
-    fetchAPIKeys();
-  }, []);
-
-  const fetchAPIKeys = async () => {
-    try {
-      const response = await axios.get(`${API}/api-keys`);
-      setApiKeys(response.data);
-    } catch (error) {
-      console.error('Error fetching API keys:', error);
-    }
-  };
-
-  const createAPIKey = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${API}/api-keys`, {
-        name: newKeyName,
-        permissions: selectedPermissions
-      });
-      setNewKeyName('');
-      setSelectedPermissions([]);
-      fetchAPIKeys();
-    } catch (error) {
-      console.error('Error creating API key:', error);
-    }
-  };
-
-  const deleteAPIKey = async (keyId) => {
-    try {
-      await axios.delete(`${API}/api-keys/${keyId}`);
-      fetchAPIKeys();
-    } catch (error) {
-      console.error('Error deleting API key:', error);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto p-4">
-        {/* Header with Back Button */}
         <div className="flex items-center mb-8">
           <button
             onClick={onBack}
@@ -382,142 +176,17 @@ const APIManagement = ({ onBack }) => {
           <h1 className="text-3xl font-bold text-gray-900">🔑 API Management</h1>
         </div>
         
-        {/* Create New API Key */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Create New API Key</h2>
-          <form onSubmit={createAPIKey} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Key Name</label>
-              <input
-                type="text"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., POS Integration Key"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {permissions.map((permission) => (
-                  <label key={permission} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedPermissions.includes(permission)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedPermissions([...selectedPermissions, permission]);
-                        } else {
-                          setSelectedPermissions(selectedPermissions.filter(p => p !== permission));
-                        }
-                      }}
-                      className="mr-2"
-                    />
-                    <span className="text-sm">{permission.replace('_', ' ')}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Create API Key
-            </button>
-          </form>
-        </div>
-
-        {/* API Keys List */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">API Keys</h2>
-          <div className="space-y-4">
-            {apiKeys.map((key) => (
-              <div key={key.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-medium">{key.name}</h3>
-                    <p className="text-sm text-gray-600 font-mono bg-gray-100 p-2 rounded mt-2">
-                      {key.key}
-                    </p>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-600">Permissions:</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {key.permissions.map((permission) => (
-                          <span key={permission} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            {permission.replace('_', ' ')}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Created: {new Date(key.created_at).toLocaleDateString()}
-                      {key.last_used && (
-                        <span> • Last used: {new Date(key.last_used).toLocaleDateString()}</span>
-                      )}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => deleteAPIKey(key.id)}
-                    className="ml-4 text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Deactivate
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Integration Examples */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">🔗 Integration Examples</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-medium mb-2">POS System Integration</h3>
-              <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
-{`POST ${API}/integrations/pos/orders
-Headers:
-  X-API-Key: your_api_key_here
-  Content-Type: application/json
-
-Body:
-{
-  "customer_name": "John Doe",
-  "customer_phone": "+1234567890",
-  "customer_address": "123 Main St",
-  "external_order_id": "POS-001",
-  "total_amount": 25.99
-}`}
-              </pre>
-            </div>
-            
-            <div>
-              <h3 className="font-medium mb-2">Webhook for Order Updates</h3>
-              <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
-{`GET ${API}/integrations/webhook/orders/{order_id}
-Headers:
-  X-API-Key: your_api_key_here
-
-Response:
-{
-  "id": "order_id",
-  "status": "delivered",
-  "customer_name": "John Doe",
-  "delivered_at": "2024-01-01T12:00:00Z"
-}`}
-              </pre>
-            </div>
-          </div>
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">🔑</div>
+          <h2 className="text-2xl font-semibold text-gray-600 mb-2">API Management</h2>
+          <p className="text-gray-500">API integration features will be available here.</p>
         </div>
       </div>
     </div>
   );
 };
 
-// Enhanced Restaurant Owner Dashboard
+// Restaurant Owner Dashboard
 const RestaurantDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [newOrder, setNewOrder] = useState({
@@ -528,57 +197,15 @@ const RestaurantDashboard = () => {
     order_value: '',
     priority: 'normal'
   });
-  const [ws, setWs] = useState(null);
-  const [filter, setFilter] = useState({
-    status: '',
-    date_from: '',
-    date_to: '',
-    customer_name: ''
-  });
   const [currentView, setCurrentView] = useState('orders');
 
   useEffect(() => {
     fetchOrders();
-    
-    // Setup WebSocket connection
-    const websocket = new WebSocket(`${WS_URL}/ws/owner/restaurant_owner`);
-    
-    websocket.onopen = () => {
-      console.log('Owner WebSocket connected');
-      setWs(websocket);
-    };
-    
-    websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'status_update') {
-        setOrders(prev => prev.map(order => 
-          order.id === data.order_id 
-            ? { ...order, status: data.status, assigned_to: data.agent_id }
-            : order
-        ));
-      }
-    };
-    
-    websocket.onclose = () => {
-      console.log('Owner WebSocket disconnected');
-    };
-    
-    return () => {
-      if (websocket) {
-        websocket.close();
-      }
-    };
   }, []);
 
   const fetchOrders = async () => {
     try {
-      const params = new URLSearchParams();
-      if (filter.status) params.append('status', filter.status);
-      if (filter.date_from) params.append('date_from', filter.date_from);
-      if (filter.date_to) params.append('date_to', filter.date_to);
-      if (filter.customer_name) params.append('customer_name', filter.customer_name);
-      
-      const response = await axios.get(`${API}/orders?${params.toString()}`);
+      const response = await axios.get(`${API}/orders`);
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -610,38 +237,14 @@ const RestaurantDashboard = () => {
   const handleSendForDelivery = async (orderId) => {
     try {
       await axios.post(`${API}/orders/${orderId}/send-for-delivery`);
-      await axios.put(`${API}/orders/${orderId}`, {
-        status: 'out_for_delivery',
-        assigned_to: 'delivery_agent_1'
-      });
-      
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        const order = orders.find(o => o.id === orderId);
-        ws.send(JSON.stringify({
-          type: 'send_for_delivery',
-          order: { ...order, status: 'out_for_delivery' }
-        }));
-      }
-      
       setOrders(prev => prev.map(order => 
         order.id === orderId 
           ? { ...order, status: 'out_for_delivery' }
           : order
       ));
-      
       alert('Order sent for delivery successfully!');
     } catch (error) {
       console.error('Error sending order for delivery:', error);
-      alert('Error sending order for delivery. Please try again.');
-    }
-  };
-
-  const getEstimateDeliveryTime = async (orderId) => {
-    try {
-      const response = await axios.post(`${API}/orders/${orderId}/estimate-delivery`);
-      alert(`Estimated delivery time: ${response.data.estimated_time_minutes} minutes\nConfidence: ${(response.data.confidence_score * 100).toFixed(1)}%`);
-    } catch (error) {
-      console.error('Error getting delivery estimate:', error);
     }
   };
 
@@ -651,16 +254,6 @@ const RestaurantDashboard = () => {
       case 'out_for_delivery': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'normal': return 'bg-gray-100 text-gray-800';
-      case 'low': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -680,7 +273,6 @@ const RestaurantDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-4">
-        {/* Navigation */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Restaurant Dashboard</h1>
           <div className="flex space-x-2">
@@ -773,19 +365,6 @@ const RestaurantDashboard = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-              <select
-                value={newOrder.priority}
-                onChange={(e) => setNewOrder({...newOrder, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
             <div className="md:col-span-3">
               <button
                 type="submit"
@@ -797,119 +376,48 @@ const RestaurantDashboard = () => {
           </form>
         </div>
 
-        {/* Order Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Filter Orders</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={filter.status}
-                onChange={(e) => setFilter({...filter, status: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="out_for_delivery">Out for Delivery</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-              <input
-                type="text"
-                value={filter.customer_name}
-                onChange={(e) => setFilter({...filter, customer_name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Search by name..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-              <input
-                type="date"
-                value={filter.date_from}
-                onChange={(e) => setFilter({...filter, date_from: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-              <input
-                type="date"
-                value={filter.date_to}
-                onChange={(e) => setFilter({...filter, date_to: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="md:col-span-4">
-              <button
-                onClick={fetchOrders}
-                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Orders List */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">Orders ({orders.length})</h2>
           <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-lg">{order.customer_name}</h3>
-                    <p className="text-gray-600">Order ID: {order.order_id}</p>
-                    <p className="text-gray-600">📞 {order.customer_phone}</p>
-                    <p className="text-gray-600">📍 {order.customer_address}</p>
-                    {order.order_value > 0 && (
-                      <p className="text-gray-600">💰 ₹{order.order_value}</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className="flex space-x-2 mb-2">
+            {orders.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No orders yet. Create your first order above.</p>
+              </div>
+            ) : (
+              orders.map((order) => (
+                <div key={order.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg">{order.customer_name}</h3>
+                      <p className="text-gray-600">Order ID: {order.order_id}</p>
+                      <p className="text-gray-600">📞 {order.customer_phone}</p>
+                      <p className="text-gray-600">📍 {order.customer_address}</p>
+                      {order.order_value > 0 && (
+                        <p className="text-gray-600">💰 ₹{order.order_value}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
                         {order.status.replace('_', ' ').toUpperCase()}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(order.priority)}`}>
-                        {order.priority.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </p>
-                    {order.estimated_delivery_time && (
-                      <p className="text-sm text-purple-600">
-                        ⏱️ ETA: {order.estimated_delivery_time} min
+                      <p className="text-sm text-gray-500 mt-1">
+                        {new Date(order.created_at).toLocaleDateString()}
                       </p>
-                    )}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex space-x-2">
+                  
                   {order.status === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleSendForDelivery(order.id)}
-                        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm"
-                      >
-                        🚚 Send for Delivery
-                      </button>
-                      <button
-                        onClick={() => getEstimateDeliveryTime(order.id)}
-                        className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors text-sm"
-                      >
-                        ⏱️ Get Estimate
-                      </button>
-                    </>
+                    <button
+                      onClick={() => handleSendForDelivery(order.id)}
+                      className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm"
+                    >
+                      🚚 Send for Delivery
+                    </button>
                   )}
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -917,20 +425,22 @@ const RestaurantDashboard = () => {
   );
 };
 
-// Enhanced Delivery Agent Interface
+// Delivery Agent Interface
 const DeliveryAgentApp = () => {
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
-  const [ws, setWs] = useState(null);
-  const [agentId] = useState('delivery_agent_1');
-  const [location, setLocation] = useState(null);
-  const [currentTab, setCurrentTab] = useState('active'); // 'active' or 'history'
+  const [currentTab, setCurrentTab] = useState('active');
   const [agentStats, setAgentStats] = useState({
     totalDeliveries: 0,
     avgDeliveryTime: 0,
     successRate: 0,
     totalEarnings: 0
   });
+
+  useEffect(() => {
+    fetchOrders();
+    fetchOrderHistory();
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -939,7 +449,6 @@ const DeliveryAgentApp = () => {
         order.status === 'pending' || order.status === 'out_for_delivery'
       );
       setOrders(deliveryOrders);
-      console.log('Fetched active orders for delivery agent:', deliveryOrders.length);
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
@@ -947,177 +456,33 @@ const DeliveryAgentApp = () => {
 
   const fetchOrderHistory = async () => {
     try {
-      // Fetch all orders assigned to this agent
-      const response = await axios.get(`${API}/delivery-agents/${agentId}/orders`);
-      const allAgentOrders = response.data;
-      
-      // Separate delivered orders for history
-      const deliveredOrders = allAgentOrders.filter(order => 
+      const response = await axios.get(`${API}/orders`);
+      const deliveredOrders = response.data.filter(order => 
         order.status === 'delivered' || order.status === 'cancelled'
       );
       setOrderHistory(deliveredOrders);
-      
-      // Calculate agent stats
-      const delivered = allAgentOrders.filter(order => order.status === 'delivered');
-      const totalDeliveries = delivered.length;
-      const avgTime = delivered.length > 0 
-        ? delivered.reduce((sum, order) => sum + (order.actual_delivery_time || 0), 0) / delivered.length
-        : 0;
-      const successRate = allAgentOrders.length > 0 
-        ? (delivered.length / allAgentOrders.length) * 100 
-        : 0;
-      const totalEarnings = delivered.reduce((sum, order) => sum + (order.order_value || 0), 0);
-      
-      setAgentStats({
-        totalDeliveries,
-        avgDeliveryTime: Math.round(avgTime),
-        successRate: Math.round(successRate),
-        totalEarnings: totalEarnings.toFixed(2)
-      });
-      
-      console.log('Fetched order history:', deliveredOrders.length);
     } catch (error) {
       console.error('Error fetching order history:', error);
-      // Fallback: fetch from general orders endpoint with filtering
-      try {
-        const response = await axios.get(`${API}/orders?assigned_to=${agentId}`);
-        const agentOrders = response.data;
-        const deliveredOrders = agentOrders.filter(order => 
-          order.status === 'delivered' || order.status === 'cancelled'
-        );
-        setOrderHistory(deliveredOrders);
-      } catch (fallbackError) {
-        console.error('Fallback fetch also failed:', fallbackError);
-      }
     }
   };
-
-  const updateLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            timestamp: new Date().toISOString()
-          };
-          setLocation(newLocation);
-          
-          // Send location update via WebSocket
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'location_update',
-              location: newLocation
-            }));
-          }
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    fetchOrderHistory();
-    
-    // Get initial location
-    updateLocation();
-    
-    // Update location every 30 seconds
-    const locationInterval = setInterval(updateLocation, 30000);
-    
-    // Set up polling as fallback to WebSocket
-    const pollInterval = setInterval(() => {
-      fetchOrders();
-      if (currentTab === 'history') {
-        fetchOrderHistory();
-      }
-    }, 10000);
-    
-    // Try WebSocket connection
-    const websocket = new WebSocket(`${WS_URL}/ws/delivery/${agentId}`);
-    
-    websocket.onopen = () => {
-      console.log('Delivery Agent WebSocket connected');
-      setWs(websocket);
-    };
-    
-    websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'new_order') {
-        setOrders(prev => [data.order, ...prev]);
-        
-        if (Notification.permission === 'granted') {
-          new Notification('New Delivery Order!', {
-            body: `Order for ${data.order.customer_name} at ${data.order.customer_address}`,
-            icon: '/favicon.ico'
-          });
-        }
-      } else if (data.type === 'order_assigned') {
-        setOrders(prev => prev.map(order => 
-          order.id === data.order.id ? data.order : order
-        ));
-        
-        if (Notification.permission === 'granted') {
-          new Notification('Order Assigned!', {
-            body: `You've been assigned order ${data.order.order_id}`,
-            icon: '/favicon.ico'
-          });
-        }
-      }
-    };
-    
-    websocket.onclose = () => {
-      console.log('Delivery Agent WebSocket disconnected');
-    };
-    
-    websocket.onerror = (error) => {
-      console.log('WebSocket error, relying on polling:', error);
-    };
-    
-    // Request notification permission
-    if (Notification.permission !== 'granted') {
-      Notification.requestPermission();
-    }
-    
-    return () => {
-      if (websocket) {
-        websocket.close();
-      }
-      clearInterval(pollInterval);
-      clearInterval(locationInterval);
-    };
-  }, [agentId, currentTab]);
 
   const updateOrderStatus = async (orderId, status) => {
     try {
       await axios.put(`${API}/orders/${orderId}`, {
         status: status,
-        assigned_to: agentId
+        assigned_to: 'delivery_agent_1'
       });
       
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'status_update',
-          order_id: orderId,
-          status: status
-        }));
-      }
-      
-      // Update local state
       setOrders(prev => prev.map(order => 
         order.id === orderId 
-          ? { ...order, status: status, assigned_to: agentId }
+          ? { ...order, status: status }
           : order
       ));
-      
-      // If marked as delivered, refresh history
+
       if (status === 'delivered') {
         setTimeout(() => {
           fetchOrderHistory();
-          fetchOrders(); // Remove from active orders
+          fetchOrders();
         }, 1000);
       }
     } catch (error) {
@@ -1141,19 +506,6 @@ const DeliveryAgentApp = () => {
     }
   };
 
-  const formatDeliveryTime = (minutes) => {
-    if (!minutes) return 'N/A';
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto p-4">
@@ -1162,10 +514,7 @@ const DeliveryAgentApp = () => {
           <div className="flex justify-between items-center mb-3">
             <h1 className="text-xl font-bold text-gray-900">Delivery Agent</h1>
             <div className="text-right">
-              {location && (
-                <p className="text-xs text-green-600">📍 GPS Active</p>
-              )}
-              <p className="text-xs text-gray-500">Agent ID: {agentId}</p>
+              <p className="text-xs text-gray-500">Agent Dashboard</p>
             </div>
           </div>
           
@@ -1178,14 +527,6 @@ const DeliveryAgentApp = () => {
             <div className="bg-green-50 rounded-lg p-2">
               <p className="text-lg font-bold text-green-600">₹{agentStats.totalEarnings}</p>
               <p className="text-xs text-green-600">Total Earnings</p>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-2">
-              <p className="text-lg font-bold text-purple-600">{agentStats.avgDeliveryTime}m</p>
-              <p className="text-xs text-purple-600">Avg Time</p>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-2">
-              <p className="text-lg font-bold text-yellow-600">{agentStats.successRate}%</p>
-              <p className="text-xs text-yellow-600">Success Rate</p>
             </div>
           </div>
         </div>
@@ -1231,16 +572,13 @@ const DeliveryAgentApp = () => {
                       <h3 className="font-semibold text-lg">{order.customer_name}</h3>
                       <p className="text-gray-600 text-sm">Order: {order.order_id}</p>
                       {order.order_value > 0 && (
-                        <p className="text-green-600 text-sm font-medium">💰 ${order.order_value}</p>
+                        <p className="text-green-600 text-sm font-medium">💰 ₹{order.order_value}</p>
                       )}
                     </div>
                     <div className="text-right">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                         {order.status.replace('_', ' ').toUpperCase()}
                       </span>
-                      {order.priority !== 'normal' && (
-                        <p className="text-xs text-red-600 mt-1">🚨 {order.priority.toUpperCase()}</p>
-                      )}
                     </div>
                   </div>
                   
@@ -1254,16 +592,6 @@ const DeliveryAgentApp = () => {
                     <div className="flex items-start">
                       <span className="text-green-600 mr-2 mt-1">📍</span>
                       <p className="text-gray-700 text-sm leading-relaxed">{order.customer_address}</p>
-                    </div>
-                    {order.estimated_delivery_time && (
-                      <div className="flex items-center">
-                        <span className="text-purple-600 mr-2">⏱️</span>
-                        <p className="text-purple-600 text-sm">ETA: {order.estimated_delivery_time} min</p>
-                      </div>
-                    )}
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2">🕐</span>
-                      <p className="text-gray-600 text-sm">Created: {formatDate(order.created_at)}</p>
                     </div>
                   </div>
                   
@@ -1316,16 +644,13 @@ const DeliveryAgentApp = () => {
                       <h3 className="font-semibold text-lg">{order.customer_name}</h3>
                       <p className="text-gray-600 text-sm">Order: {order.order_id}</p>
                       {order.order_value > 0 && (
-                        <p className="text-green-600 text-sm font-medium">💰 ${order.order_value}</p>
+                        <p className="text-green-600 text-sm font-medium">💰 ₹{order.order_value}</p>
                       )}
                     </div>
                     <div className="text-right">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                         {order.status.replace('_', ' ').toUpperCase()}
                       </span>
-                      {order.customer_rating && (
-                        <p className="text-xs text-yellow-600 mt-1">⭐ {order.customer_rating}/5</p>
-                      )}
                     </div>
                   </div>
                   
@@ -1334,52 +659,8 @@ const DeliveryAgentApp = () => {
                       <span className="text-gray-600 mr-2">📍</span>
                       <p className="text-gray-700 text-sm leading-relaxed">{order.customer_address}</p>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-500">Created:</p>
-                        <p className="text-gray-700">{formatDate(order.created_at)}</p>
-                      </div>
-                      {order.delivered_at && (
-                        <div>
-                          <p className="text-gray-500">Delivered:</p>
-                          <p className="text-gray-700">{formatDate(order.delivered_at)}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      {order.estimated_delivery_time && (
-                        <div>
-                          <p className="text-gray-500">Estimated:</p>
-                          <p className="text-purple-600">{order.estimated_delivery_time} min</p>
-                        </div>
-                      )}
-                      {order.actual_delivery_time && (
-                        <div>
-                          <p className="text-gray-500">Actual Time:</p>
-                          <p className={`${
-                            order.actual_delivery_time <= (order.estimated_delivery_time || 60) 
-                              ? 'text-green-600' 
-                              : 'text-red-600'
-                          }`}>
-                            {formatDeliveryTime(order.actual_delivery_time)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {order.delivery_notes && (
-                      <div>
-                        <p className="text-gray-500 text-sm">Notes:</p>
-                        <p className="text-gray-700 text-sm bg-gray-50 p-2 rounded">
-                          {order.delivery_notes}
-                        </p>
-                      </div>
-                    )}
                   </div>
                   
-                  {/* Quick Action Buttons for History Items */}
                   <div className="flex space-x-2">
                     <button
                       onClick={() => openNavigation(order.customer_address)}
@@ -1394,25 +675,6 @@ const DeliveryAgentApp = () => {
                       📞 Call Customer
                     </a>
                   </div>
-                  
-                  {/* Performance Indicator */}
-                  {order.status === 'delivered' && order.estimated_delivery_time && order.actual_delivery_time && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">Performance:</span>
-                        <span className={`font-medium ${
-                          order.actual_delivery_time <= order.estimated_delivery_time 
-                            ? 'text-green-600' 
-                            : 'text-yellow-600'
-                        }`}>
-                          {order.actual_delivery_time <= order.estimated_delivery_time 
-                            ? '🎯 On Time' 
-                            : '⏱️ Delayed'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))
             )}
@@ -1450,9 +712,6 @@ function App() {
             >
               🚚 Delivery Agent
             </button>
-          </div>
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>✨ Features: Real-time GPS tracking, AI delivery estimates, Analytics dashboard</p>
           </div>
         </div>
       </div>
