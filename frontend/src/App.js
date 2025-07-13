@@ -1150,7 +1150,7 @@ const DeliveryAgentApp = () => {
               <p className="text-xs text-blue-600">Total Deliveries</p>
             </div>
             <div className="bg-green-50 rounded-lg p-2">
-              <p className="text-lg font-bold text-green-600">${agentStats.totalEarnings}</p>
+              <p className="text-lg font-bold text-green-600">₹{agentStats.totalEarnings}</p>
               <p className="text-xs text-green-600">Total Earnings</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-2">
