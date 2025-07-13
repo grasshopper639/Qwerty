@@ -577,6 +577,61 @@ const AnalyticsDashboard = ({ onBack }) => {
               </div>
             </div>
           </>
+        ) : (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">📊</div>
+            <h2 className="text-2xl font-semibold text-gray-600 mb-2">No Analytics Data Yet</h2>
+            <p className="text-gray-500 mb-6">Start taking orders to see your business analytics and insights.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                    <p className="text-2xl font-bold text-gray-900">0</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <span className="text-2xl">📋</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-green-600">₹0</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <span className="text-2xl">💰</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-blue-600">0%</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Avg Delivery Time</p>
+                    <p className="text-2xl font-bold text-purple-600">0 min</p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <span className="text-2xl">⏱️</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
