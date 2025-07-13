@@ -114,10 +114,14 @@ class RestaurantAPITester:
             self.log_test("Update Order Status", False, f"Error: {str(e)}")
             return None
     
-    def test_send_order_for_delivery(self, order_id):
+    def test_send_order_for_delivery(self, order_id, token=None):
         """Test POST /api/orders/{order_id}/send-for-delivery endpoint"""
         try:
-            response = requests.post(f"{API_BASE_URL}/orders/{order_id}/send-for-delivery", timeout=10)
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+                
+            response = requests.post(f"{API_BASE_URL}/orders/{order_id}/send-for-delivery", headers=headers, timeout=10)
             
             if response.status_code == 200:
                 result = response.json()
