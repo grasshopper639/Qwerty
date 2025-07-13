@@ -667,15 +667,15 @@ const RestaurantDashboard = () => {
   };
 
   if (currentView === 'analytics') {
-    return <AnalyticsDashboard />;
+    return <AnalyticsDashboard onBack={() => setCurrentView('orders')} />;
   }
 
   if (currentView === 'tracking') {
-    return <GPSTrackingMap />;
+    return <GPSTrackingMap onBack={() => setCurrentView('orders')} />;
   }
 
   if (currentView === 'api') {
-    return <APIManagement />;
+    return <APIManagement onBack={() => setCurrentView('orders')} />;
   }
 
   return (
