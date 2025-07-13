@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
@@ -7,10 +7,389 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
+// Authentication Context
+const AuthContext = createContext(null);
+
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      if (token) {
+        try {
+          const response = await axios.get(`${API}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setUser(response.data);
+        } catch (error) {
+          localStorage.removeItem('token');
+          setToken(null);
+        }
+      }
+      setLoading(false);
+    };
+    initAuth();
+  }, [token]);
+
+  const login = async (username, password) => {
+    try {
+      const response = await axios.post(`${API}/auth/login`, {
+        username,
+        password
+      });
+      const { user, token: newToken } = response.data;
+      setUser(user);
+      setToken(newToken);
+      localStorage.setItem('token', newToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'Login failed' 
+      };
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      await axios.post(`${API}/auth/register`, userData);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Registration failed'
+      };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      if (token) {
+        await axios.post(`${API}/auth/logout`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+    }
+  };
+
+  const value = {
+    user,
+    token,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+    loading
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// Login Component
+const LoginForm = ({ userType, onBack }) => {
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
+  const [showRegister, setShowRegister] = useState(false);
+  const [registerData, setRegisterData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    name: '',
+    phone: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    const result = await login(formData.username, formData.password);
+    
+    if (!result.success) {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (registerData.password !== registerData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    const result = await register({
+      username: registerData.username,
+      email: registerData.email,
+      password: registerData.password,
+      name: registerData.name,
+      phone: registerData.phone,
+      role: userType === 'owner' ? 'restaurant_owner' : 'delivery_agent'
+    });
+
+    if (result.success) {
+      setShowRegister(false);
+      setError('');
+      alert('Registration successful! Please login with your credentials.');
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
+
+  const roleTitle = userType === 'owner' ? 'Restaurant Owner' : 'Delivery Agent';
+  const roleIcon = userType === 'owner' ? '🏪' : '🚚';
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+        <div className="text-center mb-6">
+          <button
+            onClick={onBack}
+            className="text-gray-500 hover:text-gray-700 mb-4 text-sm"
+          >
+            ← Back to Selection
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {roleIcon} {roleTitle} {showRegister ? 'Registration' : 'Login'}
+          </h1>
+        </div>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        {!showRegister ? (
+          // Login Form
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({...formData, username: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+        ) : (
+          // Registration Form
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={registerData.name}
+                  onChange={(e) => setRegisterData({...registerData, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={registerData.phone}
+                  onChange={(e) => setRegisterData({...registerData, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                type="text"
+                value={registerData.username}
+                onChange={(e) => setRegisterData({...registerData, username: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={registerData.email}
+                onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={registerData.password}
+                  onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                  minLength="6"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={registerData.confirmPassword}
+                  onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                  minLength="6"
+                />
+              </div>
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Registering...' : 'Register'}
+            </button>
+          </form>
+        )}
+
+        <div className="mt-6 text-center">
+          {!showRegister ? (
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <button
+                onClick={() => setShowRegister(true)}
+                className="text-blue-600 hover:underline"
+              >
+                Register here
+              </button>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <button
+                onClick={() => setShowRegister(false)}
+                className="text-blue-600 hover:underline"
+              >
+                Login here
+              </button>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// User Profile Component
+const UserProfile = ({ onClose }) => {
+  const { user, logout } = useAuth();
+
+  return (
+    <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border p-4 min-w-64 z-50">
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-semibold">Profile</h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          ×
+        </button>
+      </div>
+      
+      <div className="space-y-2 mb-4">
+        <p className="text-sm"><strong>Name:</strong> {user.name}</p>
+        <p className="text-sm"><strong>Username:</strong> {user.username}</p>
+        <p className="text-sm"><strong>Email:</strong> {user.email}</p>
+        <p className="text-sm"><strong>Role:</strong> {user.role.replace('_', ' ').toUpperCase()}</p>
+        {user.phone && <p className="text-sm"><strong>Phone:</strong> {user.phone}</p>}
+      </div>
+      
+      <button
+        onClick={logout}
+        className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
+      >
+        Logout
+      </button>
+    </div>
+  );
+};
+
 // Analytics Dashboard Component
 const AnalyticsDashboard = ({ onBack }) => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
     fetchAnalytics();
@@ -18,7 +397,9 @@ const AnalyticsDashboard = ({ onBack }) => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get(`${API}/analytics/dashboard`);
+      const response = await axios.get(`${API}/analytics/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setAnalytics(response.data);
       setLoading(false);
     } catch (error) {
@@ -112,32 +493,6 @@ const AnalyticsDashboard = ({ onBack }) => {
 
 // GPS Tracking Component
 const GPSTrackingMap = ({ onBack }) => {
-  const [agents, setAgents] = useState([]);
-  const [orders, setOrders] = useState([]);
-
-  useEffect(() => {
-    fetchAgents();
-    fetchOrders();
-  }, []);
-
-  const fetchAgents = async () => {
-    try {
-      const response = await axios.get(`${API}/delivery-agents`);
-      setAgents(response.data);
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-    }
-  };
-
-  const fetchOrders = async () => {
-    try {
-      const response = await axios.get(`${API}/orders?status=out_for_delivery`);
-      setOrders(response.data);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-4">
@@ -198,6 +553,8 @@ const RestaurantDashboard = () => {
     priority: 'normal'
   });
   const [currentView, setCurrentView] = useState('orders');
+  const [showProfile, setShowProfile] = useState(false);
+  const { user, token } = useAuth();
 
   useEffect(() => {
     fetchOrders();
@@ -205,7 +562,9 @@ const RestaurantDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get(`${API}/orders`);
+      const response = await axios.get(`${API}/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -219,7 +578,9 @@ const RestaurantDashboard = () => {
         ...newOrder,
         order_value: parseFloat(newOrder.order_value) || 0
       };
-      const response = await axios.post(`${API}/orders`, orderData);
+      const response = await axios.post(`${API}/orders`, orderData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setOrders([response.data, ...orders]);
       setNewOrder({
         customer_name: '',
@@ -231,12 +592,15 @@ const RestaurantDashboard = () => {
       });
     } catch (error) {
       console.error('Error creating order:', error);
+      alert('Error creating order. Please try again.');
     }
   };
 
   const handleSendForDelivery = async (orderId) => {
     try {
-      await axios.post(`${API}/orders/${orderId}/send-for-delivery`);
+      await axios.post(`${API}/orders/${orderId}/send-for-delivery`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setOrders(prev => prev.map(order => 
         order.id === orderId 
           ? { ...order, status: 'out_for_delivery' }
@@ -245,6 +609,7 @@ const RestaurantDashboard = () => {
       alert('Order sent for delivery successfully!');
     } catch (error) {
       console.error('Error sending order for delivery:', error);
+      alert('Error sending order for delivery. Please try again.');
     }
   };
 
@@ -275,39 +640,58 @@ const RestaurantDashboard = () => {
       <div className="max-w-7xl mx-auto p-4">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Restaurant Dashboard</h1>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentView('orders')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                currentView === 'orders' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              📋 Orders
-            </button>
-            <button
-              onClick={() => setCurrentView('analytics')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                currentView === 'analytics' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              📊 Analytics
-            </button>
-            <button
-              onClick={() => setCurrentView('tracking')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                currentView === 'tracking' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              📍 Tracking
-            </button>
-            <button
-              onClick={() => setCurrentView('api')}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                currentView === 'api' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              🔑 API
-            </button>
+          <div className="flex items-center space-x-4">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCurrentView('orders')}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  currentView === 'orders' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                📋 Orders
+              </button>
+              <button
+                onClick={() => setCurrentView('analytics')}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  currentView === 'analytics' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                📊 Analytics
+              </button>
+              <button
+                onClick={() => setCurrentView('tracking')}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  currentView === 'tracking' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                📍 Tracking
+              </button>
+              <button
+                onClick={() => setCurrentView('api')}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  currentView === 'api' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                🔑 API
+              </button>
+            </div>
+            
+            {/* User Profile */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfile(!showProfile)}
+                className="flex items-center space-x-2 bg-white border border-gray-300 rounded-md px-3 py-2 hover:bg-gray-50"
+              >
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium">{user.name}</span>
+              </button>
+              
+              {showProfile && (
+                <UserProfile onClose={() => setShowProfile(false)} />
+              )}
+            </div>
           </div>
         </div>
         
@@ -430,12 +814,14 @@ const DeliveryAgentApp = () => {
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [currentTab, setCurrentTab] = useState('active');
+  const [showProfile, setShowProfile] = useState(false);
   const [agentStats, setAgentStats] = useState({
     totalDeliveries: 0,
     avgDeliveryTime: 0,
     successRate: 0,
     totalEarnings: 0
   });
+  const { user, token } = useAuth();
 
   useEffect(() => {
     fetchOrders();
@@ -444,7 +830,9 @@ const DeliveryAgentApp = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get(`${API}/orders`);
+      const response = await axios.get(`${API}/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const deliveryOrders = response.data.filter(order => 
         order.status === 'pending' || order.status === 'out_for_delivery'
       );
@@ -456,7 +844,9 @@ const DeliveryAgentApp = () => {
 
   const fetchOrderHistory = async () => {
     try {
-      const response = await axios.get(`${API}/orders`);
+      const response = await axios.get(`${API}/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const deliveredOrders = response.data.filter(order => 
         order.status === 'delivered' || order.status === 'cancelled'
       );
@@ -470,7 +860,9 @@ const DeliveryAgentApp = () => {
     try {
       await axios.put(`${API}/orders/${orderId}`, {
         status: status,
-        assigned_to: 'delivery_agent_1'
+        assigned_to: user.id
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       
       setOrders(prev => prev.map(order => 
@@ -513,8 +905,20 @@ const DeliveryAgentApp = () => {
         <div className="bg-white rounded-lg shadow-md p-4 mb-4">
           <div className="flex justify-between items-center mb-3">
             <h1 className="text-xl font-bold text-gray-900">Delivery Agent</h1>
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Agent Dashboard</p>
+            <div className="relative">
+              <button
+                onClick={() => setShowProfile(!showProfile)}
+                className="flex items-center space-x-2 text-sm"
+              >
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium">{user.name}</span>
+              </button>
+              
+              {showProfile && (
+                <UserProfile onClose={() => setShowProfile(false)} />
+              )}
             </div>
           </div>
           
@@ -685,50 +1089,89 @@ const DeliveryAgentApp = () => {
   );
 };
 
+// User Type Selection Component
+const UserTypeSelection = ({ onSelectType }) => {
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">
+          Restaurant Management System
+        </h1>
+        <p className="text-center text-gray-600 mb-8">
+          AI-Powered Delivery Management Platform
+        </p>
+        <div className="space-y-4">
+          <button
+            onClick={() => onSelectType('owner')}
+            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold"
+          >
+            🏪 Restaurant Owner
+          </button>
+          <button
+            onClick={() => onSelectType('delivery')}
+            className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+          >
+            🚚 Delivery Agent
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component
 function App() {
-  const [userType, setUserType] = useState(null);
+  const [selectedUserType, setSelectedUserType] = useState(null);
 
-  if (!userType) {
+  return (
+    <div className="App">
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<AppContent selectedUserType={selectedUserType} setSelectedUserType={setSelectedUserType} />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </div>
+  );
+}
+
+// App Content Component
+const AppContent = ({ selectedUserType, setSelectedUserType }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-          <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">
-            Restaurant Management System
-          </h1>
-          <p className="text-center text-gray-600 mb-8">
-            AI-Powered Delivery Management Platform
-          </p>
-          <div className="space-y-4">
-            <button
-              onClick={() => setUserType('owner')}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold"
-            >
-              🏪 Restaurant Owner
-            </button>
-            <button
-              onClick={() => setUserType('delivery')}
-              className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
-            >
-              🚚 Delivery Agent
-            </button>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
+  // If user is authenticated, show appropriate dashboard
+  if (user) {
+    if (user.role === 'restaurant_owner') {
+      return <RestaurantDashboard />;
+    } else if (user.role === 'delivery_agent') {
+      return <DeliveryAgentApp />;
+    }
+  }
+
+  // If no user type selected, show selection screen
+  if (!selectedUserType) {
+    return <UserTypeSelection onSelectType={setSelectedUserType} />;
+  }
+
+  // Show login form for selected user type
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={
-            userType === 'owner' ? <RestaurantDashboard /> : <DeliveryAgentApp />
-          } />
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <LoginForm 
+      userType={selectedUserType} 
+      onBack={() => setSelectedUserType(null)} 
+    />
   );
-}
+};
 
 export default App;
