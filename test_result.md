@@ -149,6 +149,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "All delivery agent API endpoints tested successfully: POST /api/delivery-agents (create agent), GET /api/delivery-agents (list agents). Agent creation and retrieval working perfectly with proper UUID generation and data persistence."
+      - working: true
+        agent: "testing"
+        comment: "Post-separation verification: Delivery agent management APIs remain fully functional. Successfully created new delivery agent and retrieved agent list. No issues detected after frontend separation."
 
 frontend:
   - task: "Restaurant Owner Dashboard"
