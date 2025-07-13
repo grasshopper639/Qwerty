@@ -122,9 +122,8 @@ const AnalyticsDashboard = ({ onBack }) => {
               </div>
             </div>
           </div>
-        )}
+        }
 
-          </>
         ) : (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">📊</div>
