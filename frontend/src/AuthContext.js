@@ -17,6 +17,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children, userType = 'any' }) => {
   const [user, setUser] = useState(null);
+  const [restaurant, setRestaurant] = useState(null);
   const [token, setToken] = useState(
     userType === 'delivery' 
       ? localStorage.getItem('delivery_token')
@@ -48,6 +49,18 @@ export const AuthProvider = ({ children, userType = 'any' }) => {
           } else {
             setUser(userData);
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            
+            // Fetch restaurant info
+            if (userData.restaurant_id) {
+              try {
+                const restaurantResponse = await axios.get(`${API}/restaurants/${userData.restaurant_id}`, {
+                  headers: { Authorization: `Bearer ${token}` }
+                });
+                setRestaurant(restaurantResponse.data);
+              } catch (error) {
+                console.error('Error fetching restaurant:', error);
+              }
+            }
           }
         } catch (error) {
           const tokenKey = getTokenKey(userType === 'delivery' ? 'delivery_agent' : 'restaurant_owner');
@@ -60,11 +73,12 @@ export const AuthProvider = ({ children, userType = 'any' }) => {
     initAuth();
   }, [token, userType]);
 
-  const login = async (username, password) => {
+  const login = async (username, password, restaurantId) => {
     try {
       const response = await axios.post(`${API}/auth/login`, {
         username,
-        password
+        password,
+        restaurant_id: restaurantId
       });
       const { user: userData, token: newToken } = response.data;
       
@@ -88,6 +102,18 @@ export const AuthProvider = ({ children, userType = 'any' }) => {
       localStorage.setItem(tokenKey, newToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
       
+      // Fetch restaurant info
+      if (userData.restaurant_id) {
+        try {
+          const restaurantResponse = await axios.get(`${API}/restaurants/${userData.restaurant_id}`, {
+            headers: { Authorization: `Bearer ${newToken}` }
+          });
+          setRestaurant(restaurantResponse.data);
+        } catch (error) {
+          console.error('Error fetching restaurant:', error);
+        }
+      }
+      
       return { success: true };
     } catch (error) {
       return { 
@@ -97,11 +123,12 @@ export const AuthProvider = ({ children, userType = 'any' }) => {
     }
   };
 
-  const register = async (userData) => {
+  const register = async (userData, restaurantId) => {
     try {
       const registrationData = {
         ...userData,
-        role: userType === 'delivery' ? 'delivery_agent' : 'restaurant_owner'
+        role: userType === 'delivery' ? 'delivery_agent' : 'restaurant_owner',
+        restaurant_id: restaurantId
       };
       await axios.post(`${API}/auth/register`, registrationData);
       return { success: true };
@@ -125,6 +152,7 @@ export const AuthProvider = ({ children, userType = 'any' }) => {
     } finally {
       setUser(null);
       setToken(null);
+      setRestaurant(null);
       
       // Clear both tokens to be safe
       localStorage.removeItem('delivery_token');
@@ -135,6 +163,7 @@ export const AuthProvider = ({ children, userType = 'any' }) => {
 
   const value = {
     user,
+    restaurant,
     token,
     login,
     register,
