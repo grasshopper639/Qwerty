@@ -305,7 +305,7 @@ const DeliveryAgentDashboard = () => {
     successRate: 0,
     totalEarnings: 0
   });
-  const { user, token } = useAuth();
+  const { user, restaurant, token } = useAuth();
 
   useEffect(() => {
     fetchOrders();
