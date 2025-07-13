@@ -94,7 +94,24 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Enhanced Models with Authentication
+# Enhanced Models with Authentication and Restaurant Isolation
+class Restaurant(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    address: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+
+class RestaurantCreate(BaseModel):
+    name: str
+    address: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    description: Optional[str] = None
+
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: str
@@ -103,9 +120,11 @@ class User(BaseModel):
     role: str  # "restaurant_owner" or "delivery_agent"
     name: str
     phone: Optional[str] = None
+    restaurant_id: str  # Links user to specific restaurant
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
+    vehicle_type: Optional[str] = None  # For delivery agents
 
 class UserCreate(BaseModel):
     username: str
@@ -114,10 +133,13 @@ class UserCreate(BaseModel):
     role: str
     name: str
     phone: Optional[str] = None
+    restaurant_id: str
+    vehicle_type: Optional[str] = None  # For delivery agents
 
 class UserLogin(BaseModel):
     username: str
     password: str
+    restaurant_id: str  # Restaurant-specific login
 
 class UserResponse(BaseModel):
     id: str
@@ -126,9 +148,11 @@ class UserResponse(BaseModel):
     role: str
     name: str
     phone: Optional[str] = None
+    restaurant_id: str
     is_active: bool
     created_at: datetime
     last_login: Optional[datetime] = None
+    vehicle_type: Optional[str] = None
 
 class LoginResponse(BaseModel):
     user: UserResponse
