@@ -870,7 +870,10 @@ async def send_order_for_delivery(
     if current_user.role != "restaurant_owner":
         raise HTTPException(status_code=403, detail="Only restaurant owners can send orders for delivery")
     
-    order = await db.orders.find_one({"id": order_id})
+    order = await db.orders.find_one({
+        "id": order_id,
+        "restaurant_id": current_user.restaurant_id
+    })
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
@@ -878,7 +881,10 @@ async def send_order_for_delivery(
     
     # If specific agent is selected, assign to them
     if agent_id:
-        agent = await db.delivery_agents.find_one({"id": agent_id})
+        agent = await db.delivery_agents.find_one({
+            "id": agent_id,
+            "restaurant_id": current_user.restaurant_id
+        })
         if not agent:
             raise HTTPException(status_code=404, detail="Selected agent not found")
         
@@ -897,7 +903,7 @@ async def send_order_for_delivery(
             "estimate": estimate.dict()
         }))
     else:
-        # Broadcast to all delivery agents (original behavior)
+        # Broadcast to all delivery agents from this restaurant only
         order_obj = Order(**order)
         order_dict = order_obj.dict()
         # Convert datetime objects to ISO format strings for JSON serialization
@@ -906,10 +912,17 @@ async def send_order_for_delivery(
         if 'delivered_at' in order_dict and order_dict['delivered_at']:
             order_dict['delivered_at'] = order_dict['delivered_at'].isoformat()
         
-        await manager.broadcast_to_delivery_agents(json.dumps({
-            "type": "new_order",
-            "order": {**order_dict, **update_data}
-        }))
+        # Only notify agents from the same restaurant
+        restaurant_agents = await db.delivery_agents.find({
+            "restaurant_id": current_user.restaurant_id,
+            "is_online": True
+        }).to_list(100)
+        
+        for agent in restaurant_agents:
+            await manager.send_to_specific_agent(agent["id"], json.dumps({
+                "type": "new_order",
+                "order": {**order_dict, **update_data}
+            }))
     
     # Update order in database
     await db.orders.update_one({"id": order_id}, {"$set": update_data})
@@ -918,26 +931,43 @@ async def send_order_for_delivery(
 
 # Enhanced Delivery Agent Management
 @api_router.post("/delivery-agents", response_model=DeliveryAgent)
-async def create_delivery_agent(agent: DeliveryAgentCreate):
+async def create_delivery_agent(agent: DeliveryAgentCreate, current_user: UserResponse = Depends(get_current_user)):
+    if current_user.role != "restaurant_owner":
+        raise HTTPException(status_code=403, detail="Only restaurant owners can create delivery agents")
+    
     agent_dict = agent.dict()
+    agent_dict["restaurant_id"] = current_user.restaurant_id  # Automatically set restaurant_id
     agent_obj = DeliveryAgent(**agent_dict)
     await db.delivery_agents.insert_one(agent_obj.dict())
     return agent_obj
 
 @api_router.get("/delivery-agents", response_model=List[DeliveryAgent])
-async def get_delivery_agents():
-    agents = await db.delivery_agents.find().to_list(1000)
+async def get_delivery_agents(current_user: UserResponse = Depends(get_current_user)):
+    agents = await db.delivery_agents.find({
+        "restaurant_id": current_user.restaurant_id
+    }).to_list(1000)
     return [DeliveryAgent(**agent) for agent in agents]
 
 @api_router.get("/delivery-agents/{agent_id}", response_model=DeliveryAgent)
-async def get_delivery_agent(agent_id: str):
-    agent = await db.delivery_agents.find_one({"id": agent_id})
+async def get_delivery_agent(agent_id: str, current_user: UserResponse = Depends(get_current_user)):
+    agent = await db.delivery_agents.find_one({
+        "id": agent_id,
+        "restaurant_id": current_user.restaurant_id
+    })
     if agent:
         return DeliveryAgent(**agent)
     raise HTTPException(status_code=404, detail="Agent not found")
 
 @api_router.put("/delivery-agents/{agent_id}", response_model=DeliveryAgent)
-async def update_delivery_agent(agent_id: str, agent_update: DeliveryAgentUpdate):
+async def update_delivery_agent(agent_id: str, agent_update: DeliveryAgentUpdate, current_user: UserResponse = Depends(get_current_user)):
+    # Verify agent belongs to the user's restaurant
+    agent = await db.delivery_agents.find_one({
+        "id": agent_id,
+        "restaurant_id": current_user.restaurant_id
+    })
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
     update_data = agent_update.dict(exclude_unset=True)
     await db.delivery_agents.update_one({"id": agent_id}, {"$set": update_data})
     
@@ -947,22 +977,40 @@ async def update_delivery_agent(agent_id: str, agent_update: DeliveryAgentUpdate
     raise HTTPException(status_code=404, detail="Agent not found")
 
 @api_router.get("/delivery-agents/{agent_id}/location")
-async def get_agent_real_time_location(agent_id: str):
+async def get_agent_real_time_location(agent_id: str, current_user: UserResponse = Depends(get_current_user)):
     """Get real-time location of delivery agent"""
+    # Verify agent belongs to the user's restaurant
+    agent = await db.delivery_agents.find_one({
+        "id": agent_id,
+        "restaurant_id": current_user.restaurant_id
+    })
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
     if agent_id in manager.agent_locations:
         return manager.agent_locations[agent_id]
     
     # Fallback to database location
-    agent = await db.delivery_agents.find_one({"id": agent_id})
-    if agent and agent.get("current_location"):
+    if agent.get("current_location"):
         return agent["current_location"]
     
     raise HTTPException(status_code=404, detail="Agent location not found")
 
 @api_router.get("/delivery-agents/{agent_id}/orders")
-async def get_agent_orders(agent_id: str, status: Optional[str] = None):
+async def get_agent_orders(agent_id: str, status: Optional[str] = None, current_user: UserResponse = Depends(get_current_user)):
     """Get orders assigned to a specific agent"""
-    filter_dict = {"assigned_to": agent_id}
+    # Verify agent belongs to the user's restaurant
+    agent = await db.delivery_agents.find_one({
+        "id": agent_id,
+        "restaurant_id": current_user.restaurant_id
+    })
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    filter_dict = {
+        "assigned_to": agent_id,
+        "restaurant_id": current_user.restaurant_id
+    }
     if status:
         filter_dict["status"] = status
     
