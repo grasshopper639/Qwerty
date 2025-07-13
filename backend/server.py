@@ -734,33 +734,103 @@ async def assign_agent_to_order(order_id: str, agent_id: str):
     
     return {"message": "Agent assigned successfully", "estimate": estimate}
 
+@api_router.post("/orders/{order_id}/assign-agent")
+async def assign_agent_to_order(
+    order_id: str, 
+    agent_id: str,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Assign a specific delivery agent to an order"""
+    if current_user.role != "restaurant_owner":
+        raise HTTPException(status_code=403, detail="Only restaurant owners can assign agents")
+    
+    order = await db.orders.find_one({"id": order_id})
+    agent = await db.delivery_agents.find_one({"id": agent_id})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Calculate delivery estimate
+    order_obj = Order(**order)
+    agent_obj = DeliveryAgent(**agent)
+    estimate = await estimator.estimate_delivery_time(order_obj, agent_obj)
+    
+    # Update order with assignment
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "assigned_to": agent_id,
+            "status": "out_for_delivery",
+            "estimated_delivery_time": estimate.estimated_time_minutes
+        }}
+    )
+    
+    # Notify specific agent
+    await manager.send_to_specific_agent(agent_id, json.dumps({
+        "type": "order_assigned",
+        "order": order_obj.dict(),
+        "estimate": estimate.dict()
+    }))
+    
+    return {"message": "Agent assigned successfully", "estimate": estimate}
+
 @api_router.post("/orders/{order_id}/send-for-delivery")
-async def send_order_for_delivery(order_id: str):
+async def send_order_for_delivery(
+    order_id: str, 
+    agent_id: Optional[str] = None,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Send order for delivery, optionally to a specific agent"""
+    if current_user.role != "restaurant_owner":
+        raise HTTPException(status_code=403, detail="Only restaurant owners can send orders for delivery")
+    
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Update order status to out for delivery
-    await db.orders.update_one(
-        {"id": order_id},
-        {"$set": {"status": "out_for_delivery"}}
-    )
+    update_data = {"status": "out_for_delivery"}
     
-    # Broadcast to delivery agents
-    order_obj = Order(**order)
-    order_dict = order_obj.dict()
-    # Convert datetime objects to ISO format strings for JSON serialization
-    if 'created_at' in order_dict and order_dict['created_at']:
-        order_dict['created_at'] = order_dict['created_at'].isoformat()
-    if 'delivered_at' in order_dict and order_dict['delivered_at']:
-        order_dict['delivered_at'] = order_dict['delivered_at'].isoformat()
+    # If specific agent is selected, assign to them
+    if agent_id:
+        agent = await db.delivery_agents.find_one({"id": agent_id})
+        if not agent:
+            raise HTTPException(status_code=404, detail="Selected agent not found")
+        
+        update_data["assigned_to"] = agent_id
+        
+        # Calculate delivery estimate for specific agent
+        order_obj = Order(**order)
+        agent_obj = DeliveryAgent(**agent)
+        estimate = await estimator.estimate_delivery_time(order_obj, agent_obj)
+        update_data["estimated_delivery_time"] = estimate.estimated_time_minutes
+        
+        # Notify specific agent
+        await manager.send_to_specific_agent(agent_id, json.dumps({
+            "type": "order_assigned",
+            "order": {**order_obj.dict(), **update_data},
+            "estimate": estimate.dict()
+        }))
+    else:
+        # Broadcast to all delivery agents (original behavior)
+        order_obj = Order(**order)
+        order_dict = order_obj.dict()
+        # Convert datetime objects to ISO format strings for JSON serialization
+        if 'created_at' in order_dict and order_dict['created_at']:
+            order_dict['created_at'] = order_dict['created_at'].isoformat()
+        if 'delivered_at' in order_dict and order_dict['delivered_at']:
+            order_dict['delivered_at'] = order_dict['delivered_at'].isoformat()
+        
+        await manager.broadcast_to_delivery_agents(json.dumps({
+            "type": "new_order",
+            "order": {**order_dict, **update_data}
+        }))
     
-    await manager.broadcast_to_delivery_agents(json.dumps({
-        "type": "new_order",
-        "order": order_dict
-    }))
+    # Update order in database
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
     
-    return {"message": "Order sent for delivery", "order_id": order_id}
+    return {"message": "Order sent for delivery", "order_id": order_id, "assigned_to": agent_id}
 
 # Enhanced Delivery Agent Management
 @api_router.post("/delivery-agents", response_model=DeliveryAgent)
